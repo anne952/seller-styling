@@ -12,7 +12,7 @@ export default function IconNext({ lien }: IconNextProps) {
       const [liked, setLiked] = useState(false);
   return (
     lien &&(
-    <Link href={lien} className="bg-blue-500 p-2 rounded-lg w-16 ">
+    <Link href={lien} className="bg-blue-500 p-2 rounded-lg w-12 h-12">
       <PressableIcon 
       name="chevron-back-outline" 
       size={24} 

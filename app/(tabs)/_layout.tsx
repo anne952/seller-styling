@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import PressableIcon from '../../components/PressableIcon';
+import { useCart } from '../../components/cart-context';
 
 export default function TabLayout() {
   return (
@@ -9,7 +10,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#9c9ef0ff',
         tabBarInactiveTintColor: '#f8f5f5ff',
         tabBarStyle: {
-          backgroundColor: '#362cf9ff',
+          backgroundColor: '#606FEF',
           borderTopWidth: 0,
           borderTopColor: '#000000',
           height: 60,
@@ -52,14 +53,7 @@ export default function TabLayout() {
         name="wallet"
         options={{
           title: 'Portefeuille',
-          tabBarIcon: ({ color, size, focused }) => (
-            <PressableIcon
-              name={focused ? 'wallet' : 'wallet-outline'}
-              size={size}
-              activeColor={color}
-              inactiveColor={color}
-            />
-          ),
+          tabBarIcon: ({ color, size, focused }) => <WalletTabIcon color={color} size={size} focused={focused} />,
         }}
       />
 
@@ -78,5 +72,18 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+function WalletTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
+  const { totalCount } = useCart();
+  return (
+    <PressableIcon
+      name={focused ? 'wallet' : 'wallet-outline'}
+      size={size}
+      activeColor={color}
+      inactiveColor={color}
+      showDot={totalCount > 0}
+    />
   );
 }
