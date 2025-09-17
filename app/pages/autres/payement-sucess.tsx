@@ -1,11 +1,31 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useActivity } from "@/components/activity-context";
+import { useCart } from "@/components/cart-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 
 
 export default function PaymentSuccessScreen({ navigation }: any) {
+  const { addActivity } = useActivity();
+  const { items, totalPrice, totalCount } = useCart();
+  // Build a simple order record; in real app fill from cart/checkout state
+  const now = new Date();
+  const first = items[0];
+  const order = {
+    id: String(now.getTime()),
+    type: 'commande' as const,
+    title: first ? (items.length > 1 ? `${first.name} + ${items.length - 1} autres` : first.name) : 'Commande',
+    price: `${totalPrice}F`,
+    quantity: totalCount || 1,
+    date: now.toLocaleDateString(),
+    step: 1,
+    image: first?.image,
+  };
+  React.useEffect(() => {
+    addActivity(order);
+  }, []);
   return (
     <View style={styles.container}>
       {/* Titre */}
@@ -17,7 +37,10 @@ export default function PaymentSuccessScreen({ navigation }: any) {
       </View>
 
       {/* Bouton suivre la commande */}
-      <Link href="/pages/autres/suivre-commande" style={styles.button} >
+      <Link
+        href={{ pathname: "/pages/autres/suivre-commande", params: { id: order.id, title: order.title, quantity: String(order.quantity), price: order.price, date: order.date, step: String(order.step) } }}
+        style={styles.button}
+      >
         <Text style={styles.buttonText}>Suivre la commande</Text>
 
       </Link>

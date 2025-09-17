@@ -1,5 +1,6 @@
 import Positionnement from "@/components/positionnement";
 import { Ionicons } from "@expo/vector-icons";
+import { Link } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -43,65 +44,97 @@ export default function WalletScreen() {
 
   return (
     <Positionnement>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <View className="flex-row justify-center gap-4 mt-2 mb-4">
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28}}>
+        <View className="flex-row items-center justify-between mb-3 ">
+          <Text className="text-xl font-extrabold">Portefeuille</Text>
+        </View>
+
+        <View className="flex-row items-center self-center bg-gray-100 rounded-full p-1 mb-5" style={{ gap: 6 }}>
           <Pressable
             onPress={() => setRange("month")}
             className={`px-4 py-2 rounded-full ${
-              range === "month" ? "bg-blue-500" : "bg-gray-200"
+              range === "month" ? "bg-blue-500" : "bg-transparent"
             }`}
+            style={{ shadowColor: '#000', shadowOpacity: range === 'month' ? 0.12 : 0, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: range === 'month' ? 1 : 0 }}
           >
-            <Text className={`${range === "month" ? "text-white" : "text-black"}`}>
-              Mois
-            </Text>
+            <Text className={`${range === "month" ? "text-white" : "text-gray-700"}`}>Mois</Text>
           </Pressable>
           <Pressable
             onPress={() => setRange("year")}
             className={`px-4 py-2 rounded-full ${
-              range === "year" ? "bg-blue-500" : "bg-gray-200"
+              range === "year" ? "bg-blue-500" : "bg-transparent"
             }`}
+            style={{ shadowColor: '#000', shadowOpacity: range === 'year' ? 0.12 : 0, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: range === 'year' ? 1 : 0 }}
           >
-            <Text className={`${range === "year" ? "text-white" : "text-black"}`}>
-              Année
-            </Text>
+            <Text className={`${range === "year" ? "text-white" : "text-gray-700"}`}>Année</Text>
           </Pressable>
         </View>
 
-        <View className="bg-white rounded-2xl p-4 mb-4">
-          <Text className="text-gray-600">Gain total</Text>
-          <Text className="text-2xl font-bold">{formatFcfa(stats.totalRevenue)}</Text>
+        <View className="bg-white rounded-2xl p-5 mb-4" style={{ borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}>
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-gray-600">Gain total</Text>
+            <Ionicons name="trending-up-outline" size={18} color="#10B981" />
+          </View>
+          <Text className="text-3xl font-extrabold">{formatFcfa(stats.totalRevenue)}</Text>
         </View>
 
-        <View className="bg-white rounded-2xl p-4 mb-4">
-          <Text className="text-gray-600 mb-2">Activité ({
-            range === "year" ? "12 mois" : "30 jours"
-          })</Text>
+        <View className="bg-white rounded-2xl p-5 mb-4" style={{ borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}>
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-gray-600">Activité ({range === "year" ? "12 mois" : "30 jours"})</Text>
+            <View className="flex-row items-center" style={{ gap: 6 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#3686F7' }} />
+              <Text className="text-gray-500 text-xs">Revenus</Text>
+            </View>
+          </View>
           {range === "month" && (
             <MonthSelector month={month} setMonth={setMonth} />
           )}
-          <LineChart values={data} height={160} color="#3686F7" showDayTicks={range === "month"} month={month} year={year} />
+          <LineChart values={data} height={176} color="#3686F7" showDayTicks={range === "month"} month={month} year={year} />
         </View>
 
-        <View className="bg-white rounded-2xl p-4 mb-12">
-          <Text className="text-gray-600 mb-2">Revenus</Text>
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-500">Mensuel</Text>
-            <Text className="font-semibold">{formatFcfa(stats.monthlyRevenue)}</Text>
+        <View className="bg-white rounded-2xl p-5 mb-12" style={{ borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-gray-600">Revenus</Text>
+            <Ionicons name="cash-outline" size={18} color="#111827" />
           </View>
           <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-500">Annuel</Text>
-            <Text className="font-semibold">{formatFcfa(stats.yearlyRevenue)}</Text>
+            <View className="flex-row items-center" style={{ gap: 8 }}>
+              <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500">Mensuel</Text>
+            </View>
+            <View style={{ backgroundColor: '#ECFDF5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 }}>
+              <Text style={{ color: '#065F46', fontWeight: '700' }}>{formatFcfa(stats.monthlyRevenue)}</Text>
+            </View>
+          </View>
+          <View className="flex-row justify-between mb-2">
+            <View className="flex-row items-center" style={{ gap: 8 }}>
+              <Ionicons name="sparkles-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500">Annuel</Text>
+            </View>
+            <View style={{ backgroundColor: '#EEF2FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 }}>
+              <Text style={{ color: '#3730A3', fontWeight: '700' }}>{formatFcfa(stats.yearlyRevenue)}</Text>
+            </View>
           </View>
           <View className="flex-row justify-between">
-            <Text className="text-gray-500">Total</Text>
-            <Text className="font-semibold">{formatFcfa(stats.totalRevenue)}</Text>
+            <View className="flex-row items-center" style={{ gap: 8 }}>
+              <Ionicons name="layers-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-500">Total</Text>
+            </View>
+            <View style={{ backgroundColor: '#EFF6FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 }}>
+              <Text style={{ color: '#1D4ED8', fontWeight: '700' }}>{formatFcfa(stats.totalRevenue)}</Text>
+            </View>
           </View>
         </View>
+
         <View className="absolute right-4 top-4">
-          <View style={{ position: 'relative' }}>
-            <Ionicons name="chatbubble-ellipses-outline" size={22} color="#111827" />
-            <View style={{ position: 'absolute', top: -2, right: -2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', borderWidth: 1, borderColor: 'white' }} />
-          </View>
+          <Link href="/pages/autres/commande" asChild>
+            <Pressable>
+              <View style={{ position: 'relative', backgroundColor: 'white', borderRadius: 9999, padding: 8, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 }}>
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#111827" />
+                <View style={{ position: 'absolute', top: 4, right: 4, width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', borderWidth: 1, borderColor: 'white' }} />
+              </View>
+            </Pressable>
+          </Link>
         </View>
       </ScrollView>
     </Positionnement>
@@ -152,11 +185,11 @@ function LineChart({ values, height = 120, color = "#3686F7", showDayTicks = fal
   }
 
   return (
-    <View style={{ width, height, backgroundColor: "#F3F4F6", borderRadius: 12, overflow: "hidden" }}>
+    <View style={{ width, height, backgroundColor: "#FFFFFF", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: '#F3F4F6' }}>
       {/* grid */}
-      <View style={{ position: "absolute", top: height / 2, left: 0, right: 0, height: 1, backgroundColor: "#E5E7EB" }} />
-      <View style={{ position: "absolute", top: pad, left: 0, right: 0, height: 1, backgroundColor: "#E5E7EB" }} />
-      <View style={{ position: "absolute", bottom: pad, left: 0, right: 0, height: 1, backgroundColor: "#E5E7EB" }} />
+      <View style={{ position: "absolute", top: height / 2, left: 0, right: 0, height: 1, backgroundColor: "#F3F4F6" }} />
+      <View style={{ position: "absolute", top: pad, left: 0, right: 0, height: 1, backgroundColor: "#F3F4F6" }} />
+      <View style={{ position: "absolute", bottom: pad, left: 0, right: 0, height: 1, backgroundColor: "#F3F4F6" }} />
       {/* area fill under curve */}
       {splinePoints.map((p, i) => (
         <View

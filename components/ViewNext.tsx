@@ -1,20 +1,21 @@
-import { Text, View } from "react-native";
-import PressableIcon from "./PressableIcon";
 import { Link, LinkProps } from "expo-router";
 import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import PressableIcon from "./PressableIcon";
 
 interface IconNextProps {
   lien?: LinkProps["href"];
   name: string;
   title: string;
+  onPress?: () => void;
 }
 
-export default function ViewNext({ lien, name, title }: IconNextProps) {
+export default function ViewNext({ lien, name, title, onPress }: IconNextProps) {
   const [liked, setLiked] = useState(false);
 
   return (
     <View style={{ alignItems: "center", padding: 8 }}>
-      {lien && (
+      {lien ? (
         <Link href={lien} >
           {/* conteneur principal du bouton / ligne */}
           <View
@@ -47,6 +48,37 @@ export default function ViewNext({ lien, name, title }: IconNextProps) {
             <Text style={{ fontSize: 16, marginLeft: 12, flexShrink: 1 }}>{title}</Text>
           </View>
         </Link>
+      ) : (
+        onPress ? (
+          <Pressable onPress={onPress}>
+            <View
+              style={{
+                width: 360,
+                height: 72,
+                borderRadius: 12,
+                backgroundColor: "#fff",
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                shadowColor: "#000",
+                shadowOpacity: 0.08,
+                elevation: 3,
+              }}
+            >
+              <View style={{ width: 48, height: 48, justifyContent: "center", alignItems: "center" }}>
+                <PressableIcon
+                  name={name as any}
+                  size={28}
+                  active={liked}
+                  activeColor="gray"
+                  inactiveColor="black"
+                  onPress={() => setLiked(!liked)}
+                />
+              </View>
+              <Text style={{ fontSize: 16, marginLeft: 12, flexShrink: 1 }}>{title}</Text>
+            </View>
+          </Pressable>
+        ) : null
       )}
     </View>
   );

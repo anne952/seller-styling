@@ -49,6 +49,22 @@ export default function TabLayout() {
           ),
         }}
       />
+
+<Tabs.Screen
+        name="search"
+        options={{
+          title: 'Rechercher',
+          tabBarIcon: ({ color, size, focused }) => (
+            <PressableIcon
+              name={focused ? 'search' : 'search-outline'}
+              size={size}
+              activeColor={color}
+              inactiveColor={color}
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="wallet"
         options={{

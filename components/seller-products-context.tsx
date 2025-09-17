@@ -10,6 +10,8 @@ export type SellerProduct = {
   isPromo?: boolean;
   createdAt: Date;
   isSellerProduct: true; // Pour distinguer des produits normaux
+  colors?: string[];
+  sizes?: string[];
 };
 
 type SellerProductsContextValue = {

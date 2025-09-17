@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const ColorSelector = () => {
+type ColorSelectorProps = {
+  selectedColors?: string[];
+  onChangeSelectedColors?: (colors: string[]) => void;
+};
+
+const ColorSelector = ({ selectedColors: controlledSelected, onChangeSelectedColors }: ColorSelectorProps = {}) => {
   // Définition des 36 couleurs
   const colors = [
     '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF',
@@ -12,16 +17,14 @@ const ColorSelector = () => {
     '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107'
   ];
 
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [uncontrolledSelected, setUncontrolledSelected] = useState<string[]>([]);
+  const selectedColors = controlledSelected ?? uncontrolledSelected;
 
   const toggleColorSelection = (color: string) => {
-    if (selectedColors.includes(color)) {
-      // Désélectionner la couleur
-      setSelectedColors(selectedColors.filter(c => c !== color));
-    } else {
-      // Sélectionner la couleur
-      setSelectedColors([...selectedColors, color]);
-    }
+    const exists = selectedColors.includes(color);
+    const next = exists ? selectedColors.filter(c => c !== color) : [...selectedColors, color];
+    if (onChangeSelectedColors) onChangeSelectedColors(next);
+    if (!controlledSelected) setUncontrolledSelected(next);
   };
 
   return (

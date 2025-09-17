@@ -2,7 +2,7 @@ import { useCart } from "@/components/cart-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
 
 
 export default function Cart(){
@@ -58,9 +58,15 @@ export default function Cart(){
                  <Text className="text-xl font-semibold"> TOTAL :</Text>
                  <Text className="total_produit text-xl font-semibold"> {totalPrice}F</Text>
              </View>
-             <Link href="/pages/autres/chois-payement" className="bg-blue-500 rounded-lg p-2 text-center">
-                 <Text className="font-semibold text-2xl text-center text-white">Acheter</Text>
-             </Link>
+             {items.length > 0 ? (
+               <Link href="/pages/autres/chois-payement" className="bg-blue-500 rounded-lg p-2 text-center">
+                  <Text className="font-semibold text-2xl text-center text-white">Acheter</Text>
+               </Link>
+             ) : (
+               <Pressable onPress={() => Alert.alert('Panier vide', 'Ajoutez des articles avant de passer au paiement.')} className="bg-gray-300 rounded-lg p-2 text-center">
+                  <Text className="font-semibold text-2xl text-center text-white">Acheter</Text>
+               </Pressable>
+             )}
             </View>
           <View className="bottom-0 absolute w-full">
             

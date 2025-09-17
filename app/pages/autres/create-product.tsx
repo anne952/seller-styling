@@ -63,7 +63,7 @@ export default function CreateProduct() {
       [
         {
           text: "OK",
-          onPress: () => router.push("/(tabs)/user")
+          onPress: () => router.replace("/(tabs)/user")
         }
       ]
     );

@@ -1,9 +1,9 @@
+import CartProduit from "@/components/cartProduit";
+import Positionnement from "@/components/positionnement";
+import { useSellerProducts } from "@/components/seller-products-context";
+import List from "@/scripts/listProduit";
 import { useRouter } from "expo-router";
 import { FlatList, Image, ScrollView, Text, View } from "react-native";
-import CartProduit from "../../components/cartProduit";
-import Positionnement from "../../components/positionnement";
-import { useSellerProducts } from "../../components/seller-products-context";
-import List from "../../scripts/listProduit";
 
 
 

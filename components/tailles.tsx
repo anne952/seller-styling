@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const SizeSelector = () => {
+type SizeSelectorProps = {
+  selectedSizes?: string[];
+  onChangeSelectedSizes?: (sizes: string[]) => void;
+};
+
+const SizeSelector = ({ selectedSizes: controlledSelected, onChangeSelectedSizes }: SizeSelectorProps = {}) => {
   // Définition des tailles standard
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '36', '38', '40', '42', '44', '46'];
   
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [uncontrolledSelected, setUncontrolledSelected] = useState<string[]>([]);
+  const selectedSizes = controlledSelected ?? uncontrolledSelected;
 
   const toggleSizeSelection = (size: string) => {
-    if (selectedSizes.includes(size)) {
-      // Désélectionner la taille
-      setSelectedSizes(selectedSizes.filter(s => s !== size));
-    } else {
-      // Sélectionner la taille
-      setSelectedSizes([...selectedSizes, size]);
-    }
+    const exists = selectedSizes.includes(size);
+    const next = exists ? selectedSizes.filter(s => s !== size) : [...selectedSizes, size];
+    if (onChangeSelectedSizes) onChangeSelectedSizes(next);
+    if (!controlledSelected) setUncontrolledSelected(next);
   };
 
   return (

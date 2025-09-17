@@ -1,7 +1,7 @@
-import { Text, View } from "react-native";
+import IconNext from "@/components/IconNext";
 import Positionnement from "@/components/positionnement";
 import ViewNext from "@/components/ViewNext";
-import IconNext from "@/components/IconNext";
+import { Alert, BackHandler, Text, View } from "react-native";
 
 
 export default function SettingsScreen() {
@@ -25,7 +25,7 @@ export default function SettingsScreen() {
       />
 
       <ViewNext
-        lien="/"
+        lien="/pages/autres/suivre-commande"
         name="checkbox-outline"
         title="Suivre la commande"
       />
@@ -43,7 +43,12 @@ export default function SettingsScreen() {
       />
 
       <ViewNext
-        lien="/"
+        onPress={() => {
+          Alert.alert('Déconnexion', 'Voulez-vous quitter l\'application ?', [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Quitter', style: 'destructive', onPress: () => BackHandler.exitApp() },
+          ]);
+        }}
         name="arrow-forward-circle"
         title="Déconnexion"
       />      

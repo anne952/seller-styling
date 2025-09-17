@@ -3,6 +3,11 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 type User = {
 	name: string;
 	email: string;
+	types?: string;
+	speciality?: string;
+	contact?: string;
+	location?: string;
+	comment?: string;
 };
 
 type UserContextValue = {
@@ -13,6 +18,11 @@ type UserContextValue = {
 const defaultUser: User = {
 	name: "Amaka",
 	email: "Amaka@gmail.com",
+	types: "Homme, Femme, Enfant",
+	speciality: "Couture sur mesure, Retouche",
+	contact: "+228 90 00 00 00",
+	location: "Lomé, agoué",
+	comment: "Nous sommes très heureux de vous voir ici !",
 };
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);

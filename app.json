@@ -8,13 +8,15 @@
     "scheme": "sellerstyling",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "package": "com.sellerstyling.app",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "google_api_key": "AIzaSyDrqf1ZyQOEb-cODDRRV-OM838ubcwfV0E"
       },
       "edgeToEdgeEnabled": true
     },
@@ -22,6 +24,14 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "googleClientId": "578405728941-2530jsnlu0pcp0vbc3f334aa2cboiinn.apps.googleusercontent.com",
+      "googleAndroidClientId": "578405728941-enk5d6satm01ckt4pbopqa18qpvuqdk6.apps.googleusercontent.com",
+      "router": {},
+      "eas": {
+        "projectId": "41104730-f669-46a1-9f44-b97a4c58c699"
+      }
     },
     "plugins": [
       "expo-router",
@@ -33,10 +43,17 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-mail-composer"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/41104730-f669-46a1-9f44-b97a4c58c699"
     }
   }
 }

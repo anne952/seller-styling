@@ -14,13 +14,9 @@ export default function SellerView() {
   const produit = idNumeric ? products.find((p) => p?.id === idNumeric) : undefined;
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const sizes = ["S", "M", "XL"];
+  const sizes = produit?.sizes && produit.sizes.length > 0 ? produit.sizes : ["S", "M", "XL"];
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const colors = [
-    { key: "black", className: "bg-black" },
-    { key: "slate-500", className: "bg-slate-500" },
-    { key: "blue-400", className: "bg-blue-400" },
-  ];
+  const colors = (produit?.colors || []).map((hex) => ({ key: hex, className: "" }));
 
   const images = produit?.images || [];
   const [carouselWidth, setCarouselWidth] = useState<number>(0);
@@ -148,37 +144,41 @@ export default function SellerView() {
           </View>
           
           <View className="-mt-6">
-            <View className="taille flex flex-row justify-center p-4 gap-10">
-              {sizes.map((size) => {
-                const isSelected = selectedSize === size;
-                const containerClass = isSelected ? "border border-blue-500 bg-blue-500" : "border border-blue-500";
-                const textClass = isSelected ? "text-white" : "text-black";
-                return (
-                  <Pressable
-                    key={size}
-                    accessibilityRole="button"
-                    onPress={() => setSelectedSize(size)}
-                    className={`${containerClass} p-2 w-10 h-10 rounded-lg`}
-                  >
-                    <Text className={`text-2xl text-center -mt-1 ${textClass}`}>{size}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {sizes.length > 0 && (
+              <View className="taille flex flex-row justify-center p-4 gap-10">
+                {sizes.map((size) => {
+                  const isSelected = selectedSize === size;
+                  const containerClass = isSelected ? "border border-blue-500 bg-blue-500" : "border border-blue-500";
+                  const textClass = isSelected ? "text-white" : "text-black";
+                  return (
+                    <Pressable
+                      key={size}
+                      accessibilityRole="button"
+                      onPress={() => setSelectedSize(size)}
+                      className={`${containerClass} p-2 w-10 h-10 rounded-lg`}
+                    >
+                      <Text className={`text-2xl text-center -mt-1 ${textClass}`}>{size}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
             
-            <View className="couleur p-2 flex flex-row gap-10 justify-center">
-              {colors.map((c) => {
-                const isSelected = selectedColor === c.key;
-                return (
-                  <Pressable
-                    key={c.key}
-                    accessibilityRole="button"
-                    onPress={() => setSelectedColor(c.key)}
-                    className={`${c.className} w-10 h-10 rounded-full ${isSelected ? "border-2 border-blue-500" : ""}`}
-                  />
-                );
-              })}
-            </View>
+            {colors.length > 0 && (
+              <View className="couleur p-2 flex flex-row gap-4 justify-center">
+                {colors.map((c) => {
+                  const isSelected = selectedColor === c.key;
+                  return (
+                    <Pressable
+                      key={c.key}
+                      accessibilityRole="button"
+                      onPress={() => setSelectedColor(c.key)}
+                      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.key as string, borderWidth: isSelected ? 2 : 0, borderColor: isSelected ? '#3b82f6' : 'transparent' }}
+                    />
+                  );
+                })}
+              </View>
+            )}
             
             <Text className="p-6">
               {produit.description || "Aucune description disponible."}

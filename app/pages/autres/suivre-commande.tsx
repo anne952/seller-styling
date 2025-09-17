@@ -1,6 +1,7 @@
+import { useActivity } from '@/components/activity-context';
+import { Link, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { Link } from 'expo-router';
 
 const commande = {
   image: require('../../../assets/images/0 (4).jpeg'), // Remplacez par le chemin réel
@@ -16,27 +17,64 @@ const etapes = [
 ];
 
 export default function SuivreCommande() {
+  const params = useLocalSearchParams<{ id?: string; title?: string; quantity?: string; price?: string; date?: string }>();
+  const { activities } = useActivity();
+  const fromHistory = params && params.id;
+  const activity = fromHistory ? activities.find(a => a.id === params.id) : undefined;
+  const display = {
+    image: activity?.image ?? commande.image,
+    nom: params.title || activity?.title || commande.nom,
+    quantite: params.quantity ? Number(params.quantity) : activity?.quantity ?? commande.quantite,
+    price: params.price || (activity?.price as string | undefined),
+  } as { image: any; nom: string; quantite: number; price?: string };
+  // Step: 0 Validation, 1 En cours, 2 Livrée
+  const currentStep = (() => {
+    const raw = (params as any)?.step;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : commande.etape;
+  })();
+
+  // Empty state: no current order or delivered
+  if (!fromHistory || currentStep >= 2) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.titre}>Suivi de la commande</Text>
+        <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 60 }}>
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+            <Text style={{ fontSize: 28, color: '#4F46E5' }}>🚚</Text>
+          </View>
+          <Text style={{ color: '#6B7280' }}>Aucune commande en cours</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.titre}>Suivi de la commande</Text>
-      <Link href="/pages/autres/recu" style={styles.card}>
-        <Image source={commande.image} style={styles.image} />
+      <Link href={{ pathname: '/pages/autres/recu', params }} style={styles.card}>
+        <Image source={display.image} style={styles.image} />
         <View style={styles.info}>
-          <Text style={styles.nom}>{commande.nom}</Text>
-          <Text style={styles.quantite}>Quantité : {commande.quantite}</Text>
+          <Text style={styles.nom}>{display.nom}</Text>
+          <Text style={styles.quantite}>Quantité : {display.quantite}</Text>
+          {display.price ? (
+            <View style={styles.pricePill}><Text style={styles.pricePillText}>{display.price}</Text></View>
+          ) : null}
         </View>
       </Link>
-      
-      <View style={styles.etapesContainer}>
+
+      <View style={[styles.card, { paddingVertical: 16 }]}>
+        <View style={styles.etapesContainer}>
         {etapes.map((etape, index) => (
           <View key={etape} style={styles.etapeItem}>
             <View
-              style={[styles.circle, index <= commande.etape ? styles.active : styles.inactive]}
+              style={[styles.circle, index <= currentStep ? styles.active : styles.inactive]}
             />
-            <Text style={index <= commande.etape ? styles.activeText : styles.inactiveText}>{etape}</Text>
-            {index < etapes.length - 1 && <View style={styles.line} />}
+            <Text style={index <= currentStep ? styles.activeText : styles.inactiveText}>{etape}</Text>
+            {index < etapes.length - 1 && <View style={[styles.line, index < currentStep ? styles.lineActive : null]} />}
           </View>
         ))}
+        </View>
       </View>
     </View>
   );
@@ -45,7 +83,7 @@ export default function SuivreCommande() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFF',
+    backgroundColor: '#F9FAFB',
     padding: 20,
     marginTop: 50,
   },
@@ -58,10 +96,19 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 40,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+    margin:5,
+    gap:15,
   },
   image: {
     width: 80,
@@ -71,6 +118,8 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
+    marginLeft: 10,
+   
   },
   nom: {
     fontSize: 18,
@@ -80,6 +129,18 @@ const styles = StyleSheet.create({
   quantite: {
     fontSize: 16,
     color: '#555',
+  },
+  pricePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    marginTop: 6,
+  },
+  pricePillText: {
+    color: '#3730A3',
+    fontWeight: '700',
   },
   etapesContainer: {
     flexDirection: 'row',
@@ -120,5 +181,8 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: '#ccc',
     marginHorizontal: 4,
+  },
+  lineActive: {
+    backgroundColor: '#4F46E5',
   },
 });
