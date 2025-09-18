@@ -258,24 +258,40 @@ export default function CreateProcess() {
 
       {currentStep === 3 && (
         <View className='gap-4 flex justify-center items-center'>
+          <Text className="text-center font-semibold mb-2">Nom du produit</Text>
           <InputText placeholder="Nom du produit" value={name} onChangeText={setName} />
         </View>
       )}
 
       {currentStep === 4 && (
         <View className='gap-4 flex justify-center items-center'>
-          <InputText placeholder="Le prix de l'article" value={price} onChangeText={setPrice} keyboardType="numeric" />
+          <Text className="text-center font-semibold mb-2">Prix du produit</Text>
+          <InputText
+            placeholder="Le prix de l'article"
+            value={price}
+            onChangeText={(t) => setPrice(t.replace(/[^0-9]/g, ''))}
+            type="number"
+            keyboardType="numeric"
+          />
         </View>
       )}
 
       {currentStep === 5 && (
         <View className='gap-4 flex justify-center items-center'>
-          <InputText placeholder="Si en promotion" value={promoPrice} onChangeText={setPromoPrice} keyboardType="numeric" />
+          <Text className="text-center font-semibold mb-2">Prix de promotion du produit</Text>
+          <InputText
+            placeholder="Si en promotion"
+            value={promoPrice}
+            onChangeText={(t) => setPromoPrice(t.replace(/[^0-9]/g, ''))}
+            type="number"
+            keyboardType="numeric"
+          />
         </View>
       )}
 
       {currentStep === 6 && (
         <View className='gap-4 flex justify-center items-center'>
+          <Text className="text-center font-semibold mb-2">Description du produit</Text>
           <InputText placeholder="Description (optionnel)" value={description} onChangeText={setDescription} type='comment' />
         </View>
       )}

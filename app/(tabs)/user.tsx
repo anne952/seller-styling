@@ -4,8 +4,6 @@ import { useSellerProducts } from "@/components/seller-products-context";
 import SellerProductCard from "@/components/SellerProductCard";
 import { useUser } from "@/components/use-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as Google from 'expo-auth-session/providers/google';
-import * as Facebook from 'expo-facebook';
 import * as ImagePicker from "expo-image-picker";
 import { Link, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -105,7 +103,7 @@ export default function HomeScreen() {
   };
   return (
     <Positionnement>
-      <View className="flex-row absolute right-0 items-center px-6 mb-1 p-6 gap-6" style={{ zIndex: 10 }}>
+      <View className="flex-row absolute right-0 items-center px-6 mb-1 p-6 gap-6 -mt-12" style={{ zIndex: 10 }}>
         <Link href="/pages/autres/create-process" asChild>
           <Pressable>
             <Ionicons name="add-circle-outline" size={24} color="black" className="p-4" />

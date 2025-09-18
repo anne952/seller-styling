@@ -145,19 +145,19 @@ export default function SellerView() {
           
           <View className="-mt-6">
             {sizes.length > 0 && (
-              <View className="taille flex flex-row justify-center p-4 gap-10">
+              <View className="taille flex flex-row flex-wrap justify-center p-4 gap-3">
                 {sizes.map((size) => {
                   const isSelected = selectedSize === size;
-                  const containerClass = isSelected ? "border border-blue-500 bg-blue-500" : "border border-blue-500";
-                  const textClass = isSelected ? "text-white" : "text-black";
+                  const containerClass = isSelected ? "bg-blue-600 border border-blue-600" : "bg-white border border-gray-300";
+                  const textClass = isSelected ? "text-white" : "text-gray-800";
                   return (
                     <Pressable
                       key={size}
                       accessibilityRole="button"
                       onPress={() => setSelectedSize(size)}
-                      className={`${containerClass} p-2 w-10 h-10 rounded-lg`}
+                      className={`${containerClass} px-4 h-10 rounded-full items-center justify-center`}
                     >
-                      <Text className={`text-2xl text-center -mt-1 ${textClass}`}>{size}</Text>
+                      <Text className={` text-sm font-semibold ${textClass}`}>{size}</Text>
                     </Pressable>
                   );
                 })}
@@ -165,7 +165,7 @@ export default function SellerView() {
             )}
             
             {colors.length > 0 && (
-              <View className="couleur p-2 flex flex-row gap-4 justify-center">
+              <View className="couleur px-6 py-2 flex flex-row flex-wrap gap-3 justify-center">
                 {colors.map((c) => {
                   const isSelected = selectedColor === c.key;
                   return (
@@ -173,8 +173,10 @@ export default function SellerView() {
                       key={c.key}
                       accessibilityRole="button"
                       onPress={() => setSelectedColor(c.key)}
-                      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.key as string, borderWidth: isSelected ? 2 : 0, borderColor: isSelected ? '#3b82f6' : 'transparent' }}
-                    />
+                      style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: isSelected ? 2 : 1, borderColor: isSelected ? '#3b82f6' : '#e5e7eb' }}
+                    >
+                      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c.key as string }} />
+                    </Pressable>
                   );
                 })}
               </View>
