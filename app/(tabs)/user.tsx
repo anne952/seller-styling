@@ -3,10 +3,12 @@ import Positionnement from "@/components/positionnement";
 import { useSellerProducts } from "@/components/seller-products-context";
 import SellerProductCard from "@/components/SellerProductCard";
 import { useUser } from "@/components/use-context";
+import { ProductsApi, UsersApi } from "@/utils/auth";
+import { uploadImageToCloudinary } from "@/utils/cloudinary";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Link, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, Image, Linking, Pressable, ScrollView, Text, View } from "react-native";
 
 
@@ -19,12 +21,35 @@ export default function HomeScreen() {
 
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const { user } = useUser();
-  const { products, removeProduct } = useSellerProducts();
+  const { products, removeProduct, replaceProducts } = useSellerProducts();
   const { likedIds } = useLikes();
   const totalLikes = useMemo(() => products.reduce((acc, p) => acc + (likedIds.has(p.id) ? 1 : 0), 0), [products, likedIds]);
   const router = useRouter();
-  const contactPhoneDisplay = user.contact || "+228 90 00 00 00";
-  const contactPhoneRaw = (user.contact || "+228 90 00 00 00").replace(/\D/g, "");
+  const contactPhoneDisplay = user.contact || "";
+  const contactPhoneRaw = (user.contact || "").replace(/\D/g, "");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const apiProducts = await ProductsApi.list();
+        const mapped = apiProducts.map((p: any) => ({
+          id: Date.now() + Math.random(),
+          name: p.name,
+          price: p.price,
+          promoPrice: p.promoPrice,
+          images: (p.images || []).map((u: string) => u),
+          description: p.description,
+          isPromo: !!p.promoPrice,
+          colors: p.colors || [],
+          sizes: p.sizes || [],
+          createdAt: new Date(),
+          isSellerProduct: true as const,
+          backendId: p.id,
+        }));
+        replaceProducts(mapped);
+      } catch {}
+    })();
+  }, [replaceProducts]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -38,7 +63,16 @@ export default function HomeScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setAvatarUri(result.assets[0].uri);
+      try {
+        const localUri = result.assets[0].uri;
+        setAvatarUri(localUri);
+        const uploadedUrl = await uploadImageToCloudinary(localUri);
+        await UsersApi.meUpdate({ avatarUrl: uploadedUrl });
+        setAvatarUri(uploadedUrl);
+        Alert.alert("Succès", "Photo de profil mise à jour.");
+      } catch (e: any) {
+        Alert.alert("Erreur", e?.message || "Échec de l'upload de l'image");
+      }
     }
   };
 
@@ -119,14 +153,21 @@ export default function HomeScreen() {
       <View className="scroll mt-14 p-4 gap-6">
 
         <View>
-        <Text className="text-center font-bold">{user.name}</Text>
-        <Pressable onPress={() => sendEmail(user.email)}>
-          <Text className="text-center text-blue-500">{user.email}</Text>
-        </Pressable>
-        <View className="items-center mt-2">
-          <Link href="/pages/autres/edit-profil">
-          </Link>
-        </View>
+        {user.name ? (
+          <Text className="text-center font-bold text-xl">{user.name}</Text>
+        ) : null}
+        {user.email ? (
+          <Pressable onPress={() => sendEmail(user.email)}>
+            <Text className="text-center text-blue-500">{user.email}</Text>
+          </Pressable>
+        ) : null}
+        {(!user.location || !user.contact || !user.types || !user.speciality || !user.comment) ? (
+          <View className="items-center mt-2">
+            <Link href="/pages/autres/edit-profil" className="bg-blue-500 px-4 py-2 rounded-lg">
+              <Text className="text-white font-semibold">Compléter mon profil</Text>
+            </Link>
+          </View>
+        ) : null}
 
         <View className="flex-row justify-between items-start ">
           <Pressable onPress={pickImage} className="mt-2 ml-2">
@@ -148,22 +189,41 @@ export default function HomeScreen() {
           </View>
                   
         </View>
-          <View className="p-4">
-             <View className="commentaire">
-            <Text>{user.comment || "Nous sommes très heureux de vous voir ici !"}</Text>
-            </View>
-            <View className="types couture">
-              <Text className="text-blue-500"> {user.types || "Homme, Femme, Enfant"}</Text>
-            </View>
-            <View className="specialité">
-              <Text className="text-blue-500"> {user.speciality || "Couture sur mesure, Retouche"}</Text>
+          <View className="">
+            {/* Localisation */}
+            {user.location ? (
+              <View className="bg-gray-100  rounded-lg">
+                <Text className="text-blue-500">{user.location}</Text>
               </View>
-              <View className="adresse">
-                <Text className="text-blue-500"> {user.location || "Lomé, agoué"}</Text>
-              </View>
-              <Pressable onPress={showContactOptions} className="contact">
-                <Text className="text-blue-500"> {contactPhoneDisplay}</Text>
+            ) : null}
+
+            {/* Téléphone */}
+            {user.contact ? (
+              <Pressable onPress={showContactOptions} className="bg-gray-100  rounded-lg">
+                <Text className="text-blue-500">{contactPhoneDisplay}</Text>
               </Pressable>
+            ) : null}
+
+            {/* Types de couture */}
+            {user.types ? (
+              <View className="bg-gray-100 rounded-lg">
+                <Text className="text-blue-500">{user.types}</Text>
+              </View>
+            ) : null}
+
+            {/* Spécialités */}
+            {user.speciality ? (
+              <View className="bg-gray-100 rounded-lg">
+                <Text className="text-blue-500">{user.speciality}</Text>
+              </View>
+            ) : null}
+
+            {/* Commentaire */}
+            {user.comment ? (
+              <View className="bg-gray-100 rounded-lg">
+                <Text className="text-gray-800">{user.comment}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
         <View className="bg-blue-500 h-1 -mt-6"></View>

@@ -1,8 +1,9 @@
 import CartProduit from "@/components/cartProduit";
 import Positionnement from "@/components/positionnement";
 import { useSellerProducts } from "@/components/seller-products-context";
-import List from "@/scripts/listProduit";
+import { ProductsApi } from "@/utils/auth";
 import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { FlatList, Image, ScrollView, Text, View } from "react-native";
 
 
@@ -10,8 +11,26 @@ import { FlatList, Image, ScrollView, Text, View } from "react-native";
 export default function HomeScreen() {
   const router = useRouter();
   const { products: sellerProducts } = useSellerProducts();
+  const [catalog, setCatalog] = useState<any[]>([]);
 
-  // Combiner les produits du vendeur (en premier) avec les produits normaux
+  useEffect(() => {
+    (async () => {
+      try {
+        const apiProducts = await ProductsApi.list();
+        const mapped = apiProducts.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          Prix: p.price,
+          prixPromo: p.promoPrice,
+          image: { uri: (p.images?.[0] || null) },
+          isSellerProduct: false,
+        }));
+        setCatalog(mapped);
+      } catch {}
+    })();
+  }, []);
+
+  // Combiner les produits du vendeur (en premier) avec le catalogue backend
   const allProducts = [
     ...sellerProducts.map(product => ({
       id: product.id,
@@ -21,7 +40,7 @@ export default function HomeScreen() {
       image: { uri: product.images[0] },
       isSellerProduct: true,
     })),
-    ...List
+    ...catalog
   ];
 
   return (
@@ -48,7 +67,7 @@ export default function HomeScreen() {
         }}
          keyExtractor={(item)=>
           item.id.toString()}
-          renderItem={({item})=>(
+          renderItem={({item}) => (
           <CartProduit
           key={item.id}
           id={item.id}

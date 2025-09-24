@@ -1,4 +1,5 @@
 import { useSellerProducts } from "@/components/seller-products-context";
+import { ProductsApi } from "@/utils/auth";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -54,7 +55,15 @@ export default function SellerView() {
         {
           text: "Supprimer",
           style: "destructive",
-          onPress: () => {
+          onPress: async () => {
+            try {
+              if (produit.backendId) {
+                await ProductsApi.remove(produit.backendId);
+              }
+            } catch (e: any) {
+              Alert.alert("Erreur", e?.message || "Suppression distante échouée");
+              return;
+            }
             removeProduct(produit.id);
             router.push("/(tabs)/user");
           }

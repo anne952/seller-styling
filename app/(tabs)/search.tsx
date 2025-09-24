@@ -1,15 +1,15 @@
 import Positionnement from '@/components/positionnement'
 import { useSellerProducts } from '@/components/seller-products-context'
 import { useUser } from '@/components/use-context'
-import List from '@/scripts/listProduit'
+import { ProductsApi } from '@/utils/auth'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 
 
 type NormalizedProduct = {
-	id: number
+	id: string | number
 	name: string
 	Prix: number
 	prixPromo?: number
@@ -22,6 +22,24 @@ export default function SearchScreen() {
 	const { products: sellerProducts } = useSellerProducts()
 	const { user } = useUser()
 	const [query, setQuery] = useState('')
+	const [catalog, setCatalog] = useState<NormalizedProduct[]>([])
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const apiProducts = await ProductsApi.list()
+				const mapped = apiProducts.map((p: any) => ({
+					id: p.id,
+					name: p.name,
+					Prix: p.price,
+					prixPromo: p.promoPrice,
+					image: { uri: p.images?.[0] },
+					isSellerProduct: false,
+				}))
+				setCatalog(mapped)
+			} catch {}
+		})()
+	}, [])
 
 	const allProducts: NormalizedProduct[] = useMemo(() => {
 		return [
@@ -33,9 +51,9 @@ export default function SearchScreen() {
 				image: { uri: product.images?.[0] },
 				isSellerProduct: true,
 			})),
-			...List,
+			...catalog,
 		]
-	}, [sellerProducts])
+	}, [sellerProducts, catalog])
 
 	const filteredProducts = useMemo(() => {
 		const q = query.trim().toLowerCase()
@@ -53,7 +71,7 @@ export default function SearchScreen() {
 			user?.location,
 		]
 			.filter(Boolean)
-			.join(' ') // simple concat
+			.join(' ')
 			.toLowerCase()
 		return haystack.includes(q)
 	}, [query, user])
@@ -109,7 +127,7 @@ export default function SearchScreen() {
 							<FlatList
 								data={filteredProducts}
 								scrollEnabled={false}
-								keyExtractor={(item) => item.id.toString()}
+								keyExtractor={(item) => String(item.id)}
 								contentContainerStyle={{
 									flexDirection: 'row',
 									flexWrap: 'wrap',

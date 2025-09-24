@@ -197,12 +197,7 @@ export default function HistoryScreen() {
         )}
       </View>
 
-      {activities.length === 0 ? (
-        <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 60 }}>
-          <Ionicons name="file-tray-outline" size={64} color="#9ca3af" />
-          <Text className="mt-2 text-gray-500">Aucun historique pour le moment</Text>
-        </View>
-      ) : (
+      {activities.length > 0 && (
         <FlatList
           data={activities}
           keyExtractor={(item) => item.id}

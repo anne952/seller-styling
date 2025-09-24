@@ -1,96 +1,202 @@
-import * as AuthSession from "expo-auth-session";
-import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { apiFetch, setAuthToken } from "@/utils/api";
 
-type SocialProfile = {
-    name?: string;
-    email?: string;
+export type AuthUser = {
+    id: string;
+    name: string;
+    email: string;
+    role: "admin" | "vendeur" | "client";
     avatarUrl?: string;
-    provider?: "google" | "facebook" | "apple";
+    location?: string;
+    contact?: string;
+    types?: string;
+    speciality?: string;
+    comment?: string;
 };
 
-const GOOGLE_DISCOVERY = {
-    authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
-    tokenEndpoint: "https://oauth2.googleapis.com/token",
-    revocationEndpoint: "https://oauth2.googleapis.com/revoke",
+export type AuthResponse = {
+    token: string;
+    user: AuthUser;
 };
 
-const ensure = (value: string | undefined, message: string) => {
-    if (!value) throw new Error(message);
-    return value;
+const mapBackendUserToAuthUser = (u: any): AuthUser => ({
+    id: String(u.id),
+    name: u.nom ?? u.name ?? "",
+    email: u.email ?? "",
+    role: u.role,
+    avatarUrl: u.photoProfil,
+    location: u.localisation,
+    contact: u.telephone,
+    types: Array.isArray(u.typeCouture) ? u.typeCouture.join(", ") : u.typeCouture,
+    speciality: Array.isArray(u.specialite) ? u.specialite.join(", ") : u.specialite,
+    comment: u.commentaire,
+});
+
+export const AuthApi = {
+    register: async (payload: { 
+        name: string; 
+        email: string; 
+        password: string; 
+        role?: "vendeur" | "client";
+        localisation?: string;
+        telephone?: string;
+        typeCouture?: string[];
+        specialite?: string[];
+    }) => {
+        const backendPayload: any = {
+            nom: payload.name,
+            email: payload.email,
+            password: payload.password,
+            role: payload.role ?? "client",
+        };
+        
+        // Ajouter les champs spécifiques aux vendeurs
+        if (payload.role === "vendeur") {
+            backendPayload.localisation = payload.localisation;
+            backendPayload.telephone = payload.telephone;
+            backendPayload.typeCouture = payload.typeCouture;
+            backendPayload.specialite = payload.specialite;
+        }
+        
+        console.log('📝 Register payload:', backendPayload);
+        try {
+            const raw = await apiFetch<any>(`/api/auth/register`, { method: "POST", body: backendPayload });
+            console.log('📝 Register response:', raw);
+            const mapped: AuthResponse = {
+                token: raw.token,
+                user: mapBackendUserToAuthUser(raw.user),
+            };
+            setAuthToken(mapped.token);
+            return mapped;
+        } catch (error) {
+            console.log('📝 Register error:', error);
+            throw error;
+        }
+    },
+    login: async (payload: { email?: string; name?: string; password: string }) => {
+        const backendPayload = payload.email ? { email: payload.email, password: payload.password } : { nom: payload.name, password: payload.password };
+        console.log('🔐 Login payload:', backendPayload);
+        try {
+            const raw = await apiFetch<any>(`/api/auth/login`, { method: "POST", body: backendPayload });
+            console.log('🔐 Login response:', raw);
+            const mapped: AuthResponse = {
+                token: raw.token,
+                user: mapBackendUserToAuthUser(raw.user),
+            };
+            setAuthToken(mapped.token);
+            return mapped;
+        } catch (error) {
+            console.log('🔐 Login error:', error);
+            throw error;
+        }
+    },
+    logout: async () => {
+        try { await apiFetch(`/api/auth/logout`, { method: "POST", auth: true }); } finally { setAuthToken(null); }
+    },
+    me: async () => {
+        const raw = await apiFetch<any>(`/api/auth/me`, { auth: true });
+        return mapBackendUserToAuthUser(raw);
+    },
+    updateProfile: async (payload: Partial<{ name: string; email: string; avatarUrl: string; location: string; contact: string; types: string; speciality: string; comment: string }>) => {
+        // App dédié vendeurs: utiliser systématiquement /api/auth/profile
+        const body: any = {
+            nom: payload.name,
+            email: payload.email,
+            photoProfil: payload.avatarUrl,
+            localisation: payload.location,
+            telephone: payload.contact,
+            commentaire: payload.comment,
+        };
+        // Facultatif: si types/speciality fournis sous forme de chaîne, ne pas envoyer (le backend attend des enums[]) 
+        // Vous pourrez activer ci-dessous quand l'UI proposera un multi-choix normalisé
+        // if (Array.isArray(payload.types)) body.typeCouture = payload.types;
+        // if (Array.isArray(payload.speciality)) body.specialite = payload.speciality;
+
+        Object.keys(body).forEach(key => {
+            if (body[key] === undefined || body[key] === null || body[key] === '') {
+                delete body[key];
+            }
+        });
+
+        console.log('📝 UpdateProfile payload (/api/auth/profile):', body);
+        const raw = await apiFetch<any>(`/api/auth/profile`, { method: "PUT", body, auth: true });
+        // L'API renvoie { message, user } → utiliser raw.user si présent
+        return mapBackendUserToAuthUser((raw as any)?.user ?? raw);
+    },
 };
 
-export async function signInWithGoogle(): Promise<SocialProfile> {
-    const configExtra = (Constants?.expoConfig as any)?.extra || {};
-    const clientId = configExtra.googleClientId || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
-    ensure(clientId, "GOOGLE client id manquant (EXPO_PUBLIC_GOOGLE_CLIENT_ID)");
+export const UsersApi = {
+    meUpdate: (payload: Partial<{ name: string; email: string; avatarUrl: string }>) => {
+        const body: any = {
+            nom: payload.name,
+            email: payload.email,
+            photoProfil: payload.avatarUrl,
+        };
+        Object.keys(body).forEach((k) => (body[k] == null || body[k] === '') && delete body[k]);
+        return apiFetch<AuthUser>(`/api/users/me`, { method: "PUT", body, auth: true });
+    },
+    postExpoPushToken: (payload: { expoPushToken: string }) =>
+        apiFetch<void>(`/api/users/me/expo-push-token`, { method: "POST", body: payload, auth: true }),
+};
 
-    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+export type ProductPayload = {
+    name: string;
+    price: number;
+    promoPrice?: number;
+    images: string[];
+    description?: string;
+    colors?: string[];
+    sizes?: string[];
+};
 
-    const authUrl = `${GOOGLE_DISCOVERY.authorizationEndpoint}?` +
-        `client_id=${encodeURIComponent(clientId!)}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `response_type=token&` +
-        `scope=${encodeURIComponent("openid profile email")}&` +
-        `include_granted_scopes=true&` +
-        `prompt=select_account`;
+export type Product = ProductPayload & { id: string };
 
-    const result = await AuthSession.startAsync({ authUrl });
-    if (result.type !== "success" || !("access_token" in (result.params || {}))) {
-        throw new Error("Connexion Google annulée ou échouée");
-    }
-    const accessToken = (result.params as any).access_token as string;
-    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const user = await userInfoRes.json();
-    return {
-        name: user.name,
-        email: user.email,
-        avatarUrl: user.picture,
-        provider: "google",
-    };
-}
+export const ProductsApi = {
+    list: () => apiFetch<Product[]>(`/api/products`),
+    create: (payload: ProductPayload) => apiFetch<Product>(`/api/products`, { method: "POST", body: payload, auth: true }),
+    remove: (id: string) => apiFetch<void>(`/api/products/${id}`, { method: "DELETE", auth: true }),
+};
 
-export async function signInWithFacebook(): Promise<SocialProfile> {
-    const appId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
-    ensure(appId, "FACEBOOK app id manquant (EXPO_PUBLIC_FACEBOOK_APP_ID)");
+export type Order = {
+    id: string;
+    items: Array<{ productId: string; quantity: number; price: number }>;
+    total: number;
+    status: "validation" | "en_cours" | "livree" | "annulee";
+};
 
-    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
-    const scope = "public_profile,email";
-    const authUrl = `https://www.facebook.com/v17.0/dialog/oauth?client_id=${encodeURIComponent(appId!)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+export const OrdersApi = {
+    create: (payload: { items: Array<{ productId: string; quantity: number }>; note?: string }) =>
+        apiFetch<Order>(`/api/orders`, { method: "POST", body: payload, auth: true }),
+    myOrders: () => apiFetch<Order[]>(`/api/orders/me`, { auth: true }),
+    validate: (id: string) => apiFetch<Order>(`/api/orders/${id}/validate`, { method: "POST", auth: true }),
+    cancel: (id: string) => apiFetch<Order>(`/api/orders/${id}/cancel`, { method: "POST", auth: true }),
+    deliver: (id: string) => apiFetch<Order>(`/api/orders/${id}/deliver`, { method: "POST", auth: true }),
+};
 
-    const result = await AuthSession.startAsync({ authUrl });
-    if (result.type !== "success" || !("access_token" in (result.params || {}))) {
-        throw new Error("Connexion Facebook annulée ou échouée");
-    }
-    const accessToken = (result.params as any).access_token as string;
-    const meRes = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${encodeURIComponent(accessToken)}`);
-    const me = await meRes.json();
-    return {
-        name: me.name,
-        email: me.email,
-        avatarUrl: me?.picture?.data?.url,
-        provider: "facebook",
-    };
-}
+export const ReviewsApi = {
+    create: (payload: { vendorId: string; rating: number; comment?: string }) =>
+        apiFetch(`/api/reviews`, { method: "POST", body: payload, auth: true }),
+    byVendor: (vendeurId: string) => apiFetch(`/api/reviews/vendor/${vendeurId}`),
+    byUser: (userId: string) => apiFetch(`/api/reviews/user/${userId}`, { auth: true }),
+    update: (reviewId: string, payload: { rating?: number; comment?: string }) =>
+        apiFetch(`/api/reviews/${reviewId}`, { method: "PUT", body: payload, auth: true }),
+    remove: (reviewId: string) => apiFetch(`/api/reviews/${reviewId}`, { method: "DELETE", auth: true }),
+    list: () => apiFetch(`/api/reviews`, { auth: true }),
+};
 
-export async function signInWithApple(): Promise<SocialProfile> {
-    if (Platform.OS !== "ios") throw new Error("Apple Sign In uniquement sur iOS");
-    // Dynamic import to avoid bundling error when the package isn't installed
-    const AppleAuthentication = await import("expo-apple-authentication");
-    const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-            AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-    });
-    const fullName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ");
-    return {
-        name: fullName || undefined,
-        email: credential.email || undefined,
-        provider: "apple",
-    };
-}
+export const CategoriesApi = {
+    list: () => apiFetch(`/api/categories`),
+    create: (payload: { name: string }) => apiFetch(`/api/categories`, { method: "POST", body: payload, auth: true }),
+};
+
+export const ColorsApi = {
+    list: () => apiFetch(`/api/colors`),
+    create: (payload: { name: string; hex: string }) => apiFetch(`/api/colors`, { method: "POST", body: payload, auth: true }),
+};
+
+export const StatsApi = {
+    dashboardCards: () => apiFetch(`/api/stats/dashboard-cards`, { auth: true }),
+    salesYearly: () => apiFetch(`/api/stats/sales/yearly`, { auth: true }),
+    usersLine: () => apiFetch(`/api/stats/users/line`, { auth: true }),
+};
 
 

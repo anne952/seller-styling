@@ -1,4 +1,5 @@
 import { useUser } from "@/components/use-context";
+import { AuthApi } from "@/utils/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,6 +14,7 @@ export default function edit(){
  const [contact, setContact] = useState<string>(user.contact || "");
  const [location, setLocation] = useState<string>(user.location || "");
  const [comment, setComment] = useState<string>(user.comment || "");
+ const [submitting, setSubmitting] = useState(false);
  const router = useRouter();
  return(
     <View className="mt-20 p-6">
@@ -75,7 +77,8 @@ export default function edit(){
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => {
+          disabled={submitting}
+          onPress={async () => {
             const trimmedName = name.trim();
             const trimmedEmail = email.trim();
             const trimmedTypes = types.trim();
@@ -83,6 +86,7 @@ export default function edit(){
             const trimmedContact = contact.trim();
             const trimmedLocation = location.trim();
             const trimmedComment = comment.trim();
+            
             if (!trimmedName) {
               Alert.alert("Nom requis", "Veuillez saisir votre nom.");
               return;
@@ -91,20 +95,46 @@ export default function edit(){
               Alert.alert("Email invalide", "Veuillez saisir un email valide.");
               return;
             }
-            updateUser({ 
-              name: trimmedName, 
-              email: trimmedEmail,
-              types: trimmedTypes || undefined,
-              speciality: trimmedSpeciality || undefined,
-              contact: trimmedContact || undefined,
-              location: trimmedLocation || undefined,
-              comment: trimmedComment || undefined,
-            });
-            router.back();
+            
+            setSubmitting(true);
+            try {
+              // Sauvegarder sur le backend (sans mot de passe)
+              const updateData: any = {
+                name: trimmedName,
+                email: trimmedEmail,
+                location: trimmedLocation || undefined,
+                contact: trimmedContact || undefined,
+                types: trimmedTypes || undefined,
+                speciality: trimmedSpeciality || undefined,
+                comment: trimmedComment || undefined,
+              };
+              
+              const updated = await AuthApi.updateProfile(updateData);
+              // Mettre à jour le contexte avec les données RENVOYÉES par le serveur
+              updateUser({ 
+                name: updated.name, 
+                email: updated.email,
+                types: updated.types,
+                speciality: updated.speciality,
+                contact: updated.contact,
+                location: updated.location,
+                comment: updated.comment,
+              });
+              
+              Alert.alert("Succès", "Profil mis à jour avec succès !");
+              router.back();
+            } catch (error: any) {
+              console.error('Erreur mise à jour profil:', error);
+              Alert.alert("Erreur", error?.message || "Échec de la mise à jour du profil");
+            } finally {
+              setSubmitting(false);
+            }
           }}
           className=" bg-blue-500 w-full rounded-lg mt-20"
         >
-          <Text className="p-4 text-center text-white text-lg">Enregistrer</Text>
+          <Text className="p-4 text-center text-white text-lg">
+            {submitting ? "Enregistrement..." : "Enregistrer"}
+          </Text>
         </Pressable>
         </ScrollView>
     </View>

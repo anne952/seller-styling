@@ -1,8 +1,9 @@
 import Positionnement from "@/components/positionnement";
-import React, { useState } from "react";
+import { OrdersApi } from "@/utils/auth";
+import React, { useEffect, useState } from "react";
 import { Alert, FlatList, Image, Pressable, ScrollView, Text, View } from "react-native";
 
-type OrderStatus = "pending" | "validated" | "delivered";
+type OrderStatus = "validation" | "en_cours" | "livree" | "annulee";
 
 type Order = {
   id: number;
@@ -14,33 +15,38 @@ type Order = {
 };
 
 export default function Commande() {
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 1,
-      image: "https://via.placeholder.com/150",
-      name: "Chemise homme",
-      quantity: 2,
-      unitPrice: 7500,
-      status: "pending",
-    },
-    {
-      id: 2,
-      image: "https://via.placeholder.com/150",
-      name: "Robe femme",
-      quantity: 1,
-      unitPrice: 12500,
-      status: "validated",
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const my = await OrdersApi.myOrders();
+        if (!mounted) return;
+        const mapped: Order[] = (Array.isArray(my) ? my : []).map((o: any) => ({
+          id: Number(o.id),
+          image: Array.isArray(o.items) && o.items[0]?.image ? o.items[0].image : "https://via.placeholder.com/150",
+          name: o.nom || o.items?.[0]?.name || `Commande #${o.id}`,
+          quantity: Array.isArray(o.items) ? o.items.reduce((a: number, it: any) => a + (it.quantity ?? 0), 0) : 1,
+          unitPrice: Number(o.items?.[0]?.price ?? 0),
+          status: o.status as OrderStatus,
+        }));
+        setOrders(mapped);
+      } catch {
+        setOrders([]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const formatFcfa = (n: number) => `${n.toLocaleString()} F`;
 
   const validateOrder = (id: number) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "validated" } : o)));
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "en_cours" } : o)));
   };
 
   const deliverOrder = (id: number) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "delivered" } : o)));
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "livree" } : o)));
   };
 
   const cancelOrder = (id: number) => {
@@ -55,7 +61,7 @@ export default function Commande() {
   };
 
   const renderActions = (order: Order) => {
-    if (order.status === "pending") {
+    if (order.status === "validation") {
       return (
         <View className="flex-row gap-2 mt-2">
           <Pressable onPress={() => validateOrder(order.id)}>
@@ -71,7 +77,7 @@ export default function Commande() {
         </View>
       );
     }
-    if (order.status === "validated") {
+    if (order.status === "en_cours") {
       return (
         <View className="flex-row gap-2 mt-2">
           <Pressable onPress={() => deliverOrder(order.id)}>
@@ -87,7 +93,7 @@ export default function Commande() {
         </View>
       );
     }
-    // delivered
+    // delivered / annulee
     return (
       <View className="mt-2">
         <View className="bg-gray-400 px-3 py-2 rounded-lg">

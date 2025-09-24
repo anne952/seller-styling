@@ -1,98 +1,162 @@
 import InputText from "@/components/InputText";
-import PressableIcon from "@/components/PressableIcon";
-import ViewButtonLarge from "@/components/ViewButtonLarge";
 import Positionnement from "@/components/positionnement";
 import { useUser } from "@/components/use-context";
-import { signInWithApple, signInWithFacebook } from "@/utils/auth";
-import * as Google from "expo-auth-session/providers/google";
-import Constants from "expo-constants";
-import { Link } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
+import { AuthApi, UsersApi } from "@/utils/auth";
+import { registerForPushNotificationsAsync } from "@/utils/notifications";
+import { Link, useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Platform, Text, View } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
-export default function Login() {
-    const [tab, setTab] = useState("home");
+export default function Register() {
+    const router = useRouter();
     const { updateUser } = useUser();
-    WebBrowser.maybeCompleteAuthSession();
-    const extra: any = (Constants?.expoConfig as any)?.extra || {};
-    const expoClientId = extra.googleExpoClientId || extra.googleClientId || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
-    const androidClientId = extra.googleAndroidClientId;
-    const iosClientId = extra.googleIosClientId;
-    const [request, response, promptAsync] = Google.useAuthRequest({
-      expoClientId,
-      androidClientId,
-      iosClientId,
-      scopes: ["openid", "profile", "email"],
-      responseType: "token",
-      usePKCE: false,
-    } as any);
-    const handleGoogleSignIn = async () => {
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [localisation, setLocalisation] = useState("");
+    const [telephone, setTelephone] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const TYPE_COUTURE_OPTIONS = ["HOMME", "FEMME", "ENFANT", "MIXTE"] as const;
+    const SPECIALITE_OPTIONS = ["HauteCouture", "PretAPorter", "SurMesure", "Retouche"] as const;
+    const [selectedTypeCouture, setSelectedTypeCouture] = useState<string[]>([]);
+    const [selectedSpecialite, setSelectedSpecialite] = useState<string[]>([]);
+
+    const afterRegister = async () => {
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        try { await UsersApi.postExpoPushToken({ expoPushToken: token }); } catch {}
+      }
+    };
+
+    const handleSubmit = async () => {
+      if (!name || !email || !password || !localisation || !telephone) {
+        Alert.alert("Inscription", "Veuillez renseigner tous les champs obligatoires.");
+        return;
+      }
+      if (selectedTypeCouture.length === 0 || selectedSpecialite.length === 0) {
+        Alert.alert("Inscription", "Sélectionnez au moins un type de couture et une spécialité.");
+        return;
+      }
+      setSubmitting(true);
       try {
-        const res = await promptAsync();
-        if (res?.type !== "success" || !res.authentication?.accessToken) {
-          throw new Error("Connexion Google annulée ou échouée");
-        }
-        const accessToken = res.authentication.accessToken;
-        const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-          headers: { Authorization: `Bearer ${accessToken}` },
+        const res = await AuthApi.register({ 
+          name, 
+          email, 
+          password, 
+          role: "vendeur",
+          localisation,
+          telephone,
+          typeCouture: selectedTypeCouture,
+          specialite: selectedSpecialite
         });
-        const user = await userInfoRes.json();
-        updateUser({ name: user?.name || "Utilisateur", email: user?.email || "" });
-        Alert.alert("Succès", "Connecté avec Google");
+        updateUser({ name: res.user.name, email: res.user.email });
+        await afterRegister();
+        router.replace("/(tabs)/home");
       } catch (e: any) {
-        Alert.alert("Google", e?.message || "Échec de la connexion");
-      }
-    };
-    const handleFacebookSignIn = async () => {
-      try {
-        const profile = await signInWithFacebook();
-        updateUser({ name: profile.name || "Utilisateur", email: profile.email || "" });
-        Alert.alert("Succès", "Connecté avec Facebook");
-      } catch (e: any) {
-        Alert.alert("Facebook", e?.message || "Échec de la connexion");
-      }
-    };
-    const handleAppleSignIn = async () => {
-      try {
-        const profile = await signInWithApple();
-        updateUser({ name: profile.name || "Utilisateur", email: profile.email || "" });
-        Alert.alert("Succès", "Connecté avec Apple");
-      } catch (e: any) {
-        Alert.alert("Apple", e?.message || "Échec de la connexion");
+        Alert.alert("Inscription", e?.message || "Échec de l'inscription");
+      } finally {
+        setSubmitting(false);
       }
     };
   return (
     <Positionnement>
-        <View className="p-4">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        
         <Text className="text-right font-bold text-md">Ignorer</Text>
 
         <View className="mt-28 mb-10 items-center">
             <Text className="text-2xl font-bold text-center ">S'inscrire</Text>
             <Text className="text-md text-center">Veuillez entrer vos identifiants</Text>
         </View>
-        <View className="gap-6">
+        <View className="gap-6 ml-4">
             <InputText 
-            placeholder="Nom" 
-            name="person"
+              placeholder="Nom" 
+              name="person"
+              value={name}
+              onChangeText={setName}
             />
             <InputText 
-            placeholder="email" 
-            name="mail-outline"
+              placeholder="Email" 
+              name="mail-outline"
+              type="email"
+              value={email}
+              onChangeText={setEmail}
             />
             <InputText 
-            placeholder="Mot de passe" 
-            name="key"
+              placeholder="Mot de passe (min 6 caractères)" 
+              name="key"
+              type="password"
+              value={password}
+              onChangeText={setPassword}
             />
+            <InputText 
+              placeholder="Localisation" 
+              name="location"
+              value={localisation}
+              onChangeText={setLocalisation}
+            />
+            <InputText 
+              placeholder="Téléphone (ex: +228XXXXXXXX)" 
+              name="call"
+              type="number"
+              value={telephone}
+              onChangeText={setTelephone}
+            />
+            <View className="mt-2">
+              <Text className="font-semibold mb-2">Types de couture</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {TYPE_COUTURE_OPTIONS.map((opt) => {
+                  const active = selectedTypeCouture.includes(opt);
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      onPress={() => {
+                        setSelectedTypeCouture((prev) =>
+                          prev.includes(opt) ? prev.filter((v) => v !== opt) : [...prev, opt]
+                        );
+                      }}
+                      className={`px-3 py-2 rounded-full ${active ? 'bg-blue-500' : 'bg-gray-200'}`}
+                    >
+                      <Text className={`${active ? 'text-white' : 'text-gray-800'}`}>{opt}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+            <View className="mt-2">
+              <Text className="font-semibold mb-2">Spécialités</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {SPECIALITE_OPTIONS.map((opt) => {
+                  const active = selectedSpecialite.includes(opt);
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      onPress={() => {
+                        setSelectedSpecialite((prev) =>
+                          prev.includes(opt) ? prev.filter((v) => v !== opt) : [...prev, opt]
+                        );
+                      }}
+                      className={`px-3 py-2 rounded-full ${active ? 'bg-blue-500' : 'bg-gray-200'}`}
+                    >
+                      <Text className={`${active ? 'text-white' : 'text-gray-800'}`}>{opt}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
         </View>
-        <View className="mt-4 flex-row justify-between">
+        <View className="mt-14 ml-4">
+            <TouchableOpacity disabled={submitting} onPress={handleSubmit} className="">
+              <View className="bg-blue-500 p-4 w-[23rem] h-15 rounded-lg">
+                <Text className="text-center text-white font-semibold text-xl">{submitting ? "Inscription..." : "Continuer"}</Text>
+              </View>
+            </TouchableOpacity>
+        </View>
+        <View className="mt-14 flex-row justify-between ml-4 m-2">
             <Text>Vous avez déjà un compte ?</Text>
             <Link href='/pages/login/login' className="text-blue-500">Se connecter</Link>
-        </View>
-        <View className="mt-4 ">
-            <ViewButtonLarge name="Continuer" lien="/(tabs)/home" />
-        </View>
-        </View>
+        </View>        
+        </ScrollView>
     </Positionnement>
   );
 }

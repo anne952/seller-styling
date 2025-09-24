@@ -4,6 +4,8 @@ import Positionnement from '@/components/positionnement';
 import { useSellerProducts } from "@/components/seller-products-context";
 import TaillesSelector from '@/components/tailles';
 
+import { ProductsApi } from '@/utils/auth';
+import { uploadImageToCloudinary } from '@/utils/cloudinary';
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -110,7 +112,7 @@ export default function CreateProcess() {
     if (currentStep > 0) setCurrentStep((s) => s - 1);
   };
 
-  const handleCreateProduct = () => {
+  const handleCreateProduct = async () => {
     // Validation
     if (selectedImages.length === 0) {
       Alert.alert("Erreur", "Veuillez sélectionner au moins une image.");
@@ -145,28 +147,51 @@ export default function CreateProcess() {
       }
     }
 
-    // Créer le produit
-    addProduct({
-      name: name.trim(),
-      price: priceNum,
-      promoPrice: promoPrice.trim() ? parseFloat(promoPrice) : undefined,
-      images: selectedImages,
-      description: description.trim() || undefined,
-      isPromo: promoPrice.trim() ? true : false,
-      colors: selectedColors,
-      sizes: selectedSizes,
-    });
+    try {
+      // Upload images to Cloudinary
+      const uploadedImages: string[] = [];
+      for (const uri of selectedImages) {
+        const url = await uploadImageToCloudinary(uri);
+        uploadedImages.push(url);
+      }
 
-    Alert.alert(
-      "Succès", 
-      "Produit créé avec succès !",
-      [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(tabs)/user")
-        }
-      ]
-    );
+      // Create product via API
+      const created = await ProductsApi.create({
+        name: name.trim(),
+        price: priceNum,
+        promoPrice: promoPrice.trim() ? parseFloat(promoPrice) : undefined,
+        images: uploadedImages,
+        description: description.trim() || undefined,
+        colors: selectedColors,
+        sizes: selectedSizes,
+      });
+
+      // Update local context for immediate UI feedback
+      addProduct({
+        name: created.name,
+        price: created.price,
+        promoPrice: created.promoPrice,
+        images: created.images,
+        description: created.description,
+        isPromo: !!created.promoPrice,
+        colors: created.colors,
+        sizes: created.sizes,
+        backendId: created.id,
+      } as any);
+
+      Alert.alert(
+        "Succès", 
+        "Produit créé avec succès !",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(tabs)/user")
+          }
+        ]
+      );
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Échec de la création du produit");
+    }
   };
 
   return (
@@ -299,7 +324,7 @@ export default function CreateProcess() {
       {/* Navigation */}
       <View className="flex-row justify-between items-center px-4 mt-8">
         <Pressable onPress={goBack} disabled={currentStep === 0}>
-          <View className={`p-3 rounded-lg ${currentStep === 0 ? "bg-gray-300" : "bg-gray-500"}`}>
+          <View className={`${currentStep === 0 ? "bg-gray-300" : "bg-gray-500"} p-3 rounded-lg`}>
             <Text className="text-white">Retour</Text>
           </View>
         </Pressable>

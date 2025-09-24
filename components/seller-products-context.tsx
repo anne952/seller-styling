@@ -12,6 +12,7 @@ export type SellerProduct = {
   isSellerProduct: true; // Pour distinguer des produits normaux
   colors?: string[];
   sizes?: string[];
+  backendId?: string; // id renvoyé par l'API
 };
 
 type SellerProductsContextValue = {
@@ -19,6 +20,7 @@ type SellerProductsContextValue = {
   addProduct: (product: Omit<SellerProduct, "id" | "createdAt" | "isSellerProduct">) => void;
   removeProduct: (id: number) => void;
   updateProduct: (id: number, updates: Partial<SellerProduct>) => void;
+  replaceProducts: (items: SellerProduct[]) => void;
 };
 
 const SellerProductsContext = createContext<SellerProductsContextValue | undefined>(undefined);
@@ -48,9 +50,13 @@ export const SellerProductsProvider = ({ children }: { children: React.ReactNode
     );
   }, []);
 
+  const replaceProducts = useCallback((items: SellerProduct[]) => {
+    setProducts(items);
+  }, []);
+
   const value = useMemo(
-    () => ({ products, addProduct, removeProduct, updateProduct }),
-    [products, addProduct, removeProduct, updateProduct]
+    () => ({ products, addProduct, removeProduct, updateProduct, replaceProducts }),
+    [products, addProduct, removeProduct, updateProduct, replaceProducts]
   );
 
   return <SellerProductsContext.Provider value={value}>{children}</SellerProductsContext.Provider>;

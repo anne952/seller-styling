@@ -1,15 +1,15 @@
 import Positionnement from "@/components/positionnement";
+import { StatsApi } from "@/utils/auth";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { Link } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 type RangeKey = "year" | "month";
 type MonthIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
-const monthlyActivity = [
-  120, 200, 150, 300, 250, 400, 380, 420, 310, 500, 450, 480,
-];
+// Pas de fallback: si l'API ne répond pas, on n'affiche rien
 
 function daysInMonth(month: MonthIndex, year: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -27,18 +27,73 @@ export default function WalletScreen() {
   const [month, setMonth] = useState<MonthIndex>(today.getMonth() as MonthIndex);
   const [year] = useState<number>(today.getFullYear());
 
-  const data = range === "year" ? monthlyActivity : buildDailyActivity(month, year);
+  const [monthlySeries, setMonthlySeries] = useState<number[] | null>(null);
+  const [dashboard, setDashboard] = useState<{ totalRevenue?: number; monthlyRevenue?: number; yearlyRevenue?: number } | null>(null);
+
+  const fetchStats = async (mountedRef?: { current: boolean }) => {
+    // reset avant chargement puis fallback à 0 si pas d'activité
+    setDashboard(null);
+    setMonthlySeries(null);
+    try {
+      const cards = await StatsApi.dashboardCards();
+      if (mountedRef && !mountedRef.current) return;
+      setDashboard({
+        totalRevenue: Number(cards?.totalRevenue ?? cards?.total ?? 0),
+        monthlyRevenue: Number(cards?.monthlyRevenue ?? cards?.month ?? 0),
+        yearlyRevenue: Number(cards?.yearlyRevenue ?? cards?.year ?? 0),
+      });
+    } catch {
+      // Afficher 0 si aucune activité / erreur
+      setDashboard({ totalRevenue: 0, monthlyRevenue: 0, yearlyRevenue: 0 });
+    }
+    try {
+      const yearly = await StatsApi.salesYearly();
+      if (mountedRef && !mountedRef.current) return;
+      const values: number[] = Array.isArray(yearly)
+        ? yearly.map((m: any) => Number(m?.total ?? m?.value ?? 0))
+        : new Array(12).fill(0);
+      setMonthlySeries(values.length === 12 ? values : new Array(12).fill(0));
+    } catch {
+      setMonthlySeries(new Array(12).fill(0));
+    }
+  };
+
+  useEffect(() => {
+    const mounted = { current: true };
+    (async () => {
+      try {
+        await fetchStats(mounted);
+      } catch {}
+    })();
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useFocusEffect(React.useCallback(() => {
+    fetchStats();
+    return () => {};
+  }, []));
+
+  const data = useMemo(() => {
+    const base = monthlySeries ?? new Array(12).fill(0);
+    return range === "year" ? base : buildDailyActivity(month, year);
+  }, [range, month, year, monthlySeries]);
 
   const stats = useMemo(() => {
-    const total = data.reduce((a, b) => a + b, 0);
-    const monthly = range === "year" ? total / 12 : total;
-    const yearly = range === "year" ? total : monthlyActivity.reduce((a, b) => a + b, 0);
+    if (dashboard) {
+      return {
+        totalRevenue: dashboard.totalRevenue ?? 0,
+        monthlyRevenue: dashboard.monthlyRevenue ?? 0,
+        yearlyRevenue: dashboard.yearlyRevenue ?? 0,
+      };
+    }
     return {
-      totalRevenue: total * 1000,
-      monthlyRevenue: monthly * 1000,
-      yearlyRevenue: yearly * 1000,
+      totalRevenue: 0,
+      monthlyRevenue: 0,
+      yearlyRevenue: 0,
     };
-  }, [data, range]);
+  }, [data, range, dashboard, monthlySeries]);
 
   const formatFcfa = (n: number) => `${n.toLocaleString()} F`;
 
@@ -70,6 +125,7 @@ export default function WalletScreen() {
           </Pressable>
         </View>
 
+        {dashboard && (
         <View className="bg-white rounded-2xl p-5 mb-4" style={{ borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}>
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-gray-600">Gain total</Text>
@@ -77,7 +133,9 @@ export default function WalletScreen() {
           </View>
           <Text className="text-3xl font-extrabold">{formatFcfa(stats.totalRevenue)}</Text>
         </View>
+        )}
 
+        {data.length > 0 && (
         <View className="bg-white rounded-2xl p-5 mb-4" style={{ borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}>
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-gray-600">Activité ({range === "year" ? "12 mois" : "30 jours"})</Text>
@@ -91,7 +149,9 @@ export default function WalletScreen() {
           )}
           <LineChart values={data} height={176} color="#3686F7" showDayTicks={range === "month"} month={month} year={year} />
         </View>
+        )}
 
+        {dashboard && (
         <View className="bg-white rounded-2xl p-5 mb-12" style={{ borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}>
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-gray-600">Revenus</Text>
@@ -125,6 +185,7 @@ export default function WalletScreen() {
             </View>
           </View>
         </View>
+        )}
 
         <View className="absolute right-4 top-4">
           <Link href="/pages/autres/commande" asChild>

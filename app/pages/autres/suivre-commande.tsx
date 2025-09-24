@@ -1,7 +1,8 @@
 import { useActivity } from '@/components/activity-context';
+import { OrdersApi } from '@/utils/auth';
 import { Link, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const commande = {
   image: require('../../../assets/images/0 (4).jpeg'), // Remplacez par le chemin réel
@@ -18,7 +19,7 @@ const etapes = [
 
 export default function SuivreCommande() {
   const params = useLocalSearchParams<{ id?: string; title?: string; quantity?: string; price?: string; date?: string }>();
-  const { activities } = useActivity();
+  const { activities, clientConfirmDelivered, clientMarkNotDelivered, markOrderAccepted, markOrderDeliveredBySeller } = useActivity();
   const fromHistory = params && params.id;
   const activity = fromHistory ? activities.find(a => a.id === params.id) : undefined;
   const display = {
@@ -31,11 +32,16 @@ export default function SuivreCommande() {
   const currentStep = (() => {
     const raw = (params as any)?.step;
     const n = Number(raw);
-    return Number.isFinite(n) ? n : commande.etape;
+    return Number.isFinite(n) ? n : (activity?.step ?? commande.etape);
   })();
 
-  // Empty state: no current order or delivered
-  if (!fromHistory || currentStep >= 2) {
+  const orderId = params.id as string | undefined;
+  const sellerConfirmed = !!activity?.sellerConfirmed;
+  const clientConfirmed = !!activity?.clientConfirmed;
+  const clientDisputed = !!activity?.clientDisputed;
+
+  // Hide when both seller and client confirmed delivered
+  if (!fromHistory || (currentStep >= 2 && sellerConfirmed && clientConfirmed)) {
     return (
       <View style={styles.container}>
         <Text style={styles.titre}>Suivi de la commande</Text>
@@ -48,6 +54,22 @@ export default function SuivreCommande() {
       </View>
     );
   }
+
+  const handleVendorAccept = async () => {
+    if (!orderId) return;
+    try {
+      await OrdersApi.validate(orderId);
+      markOrderAccepted(orderId);
+    } catch {}
+  };
+
+  const handleVendorDeliver = async () => {
+    if (!orderId) return;
+    try {
+      await OrdersApi.deliver(orderId);
+      markOrderDeliveredBySeller(orderId);
+    } catch {}
+  };
 
   return (
     <View style={styles.container}>
@@ -63,7 +85,7 @@ export default function SuivreCommande() {
         </View>
       </Link>
 
-      <View style={[styles.card, { paddingVertical: 16 }]}>
+      <View style={[styles.card, { paddingVertical: 16 }] }>
         <View style={styles.etapesContainer}>
         {etapes.map((etape, index) => (
           <View key={etape} style={styles.etapeItem}>
@@ -76,6 +98,47 @@ export default function SuivreCommande() {
         ))}
         </View>
       </View>
+
+      {/* Actions vendeur */}
+      {!!orderId && (
+        <View style={[styles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+          <Text style={{ fontWeight: '600', marginBottom: 12 }}>Actions vendeur</Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            {currentStep <= 0 && (
+              <Pressable onPress={handleVendorAccept} style={{ flex: 1, backgroundColor: '#2563EB', padding: 12, borderRadius: 10 }}>
+                <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>Accepter</Text>
+              </Pressable>
+            )}
+            {currentStep === 1 && (
+              <Pressable onPress={handleVendorDeliver} style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 10 }}>
+                <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>Confirmer la livraison</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
+
+      {sellerConfirmed && (
+        <View style={[styles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+          <Text style={{ fontWeight: '600', marginBottom: 12 }}>Confirmez-vous la livraison ?</Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable onPress={() => fromHistory && clientConfirmDelivered(params.id!)} style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 10 }}>
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>Livré</Text>
+            </Pressable>
+            <Pressable onPress={() => fromHistory && clientMarkNotDelivered(params.id!)} style={{ flex: 1, backgroundColor: '#EF4444', padding: 12, borderRadius: 10 }}>
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>Non livré</Text>
+            </Pressable>
+          </View>
+          {clientDisputed && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: '#6B7280' }}>Nous vous donnerons une explication d'ici trois jours.</Text>
+              <Pressable onPress={() => fromHistory && clientConfirmDelivered(params.id!)} style={{ marginTop: 10 }}>
+                <Text style={{ color: '#2563EB', fontWeight: '600' }}>J'ai finalement reçu la commande</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }

@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { AuthApi } from "@/utils/auth";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 type User = {
 	name: string;
@@ -32,6 +33,29 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
 	const updateUser = useCallback((updates: Partial<User>) => {
 		setUserState((prev) => ({ ...prev, ...updates }));
+	}, []);
+
+	// Charger les données utilisateur depuis le backend au démarrage
+	useEffect(() => {
+		const loadUserData = async () => {
+			try {
+				const userData = await AuthApi.me();
+				setUserState({
+					name: userData.name || "Utilisateur",
+					email: userData.email || "",
+					types: userData.types,
+					speciality: userData.speciality,
+					contact: userData.contact,
+					location: userData.location,
+					comment: userData.comment,
+				});
+			} catch (error) {
+				console.log('Erreur chargement données utilisateur:', error);
+				// Garder les données par défaut en cas d'erreur
+			}
+		};
+
+		loadUserData();
 	}, []);
 
 	const value = useMemo(() => ({ user: userState, updateUser }), [userState, updateUser]);
