@@ -1,8 +1,8 @@
 import { useActivity } from '@/components/activity-context';
 import { OrdersApi } from '@/utils/auth';
 import { Link, useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const commande = {
   image: require('../../../assets/images/0 (4).jpeg'), // Remplacez par le chemin réel
@@ -15,6 +15,7 @@ const etapes = [
   'Validation',
   'En cours',
   'Livrée',
+  'Annulée',
 ];
 
 export default function SuivreCommande() {
@@ -22,14 +23,42 @@ export default function SuivreCommande() {
   const { activities, clientConfirmDelivered, clientMarkNotDelivered, markOrderAccepted, markOrderDeliveredBySeller } = useActivity();
   const fromHistory = params && params.id;
   const activity = fromHistory ? activities.find(a => a.id === params.id) : undefined;
+
+  const [realOrder, setRealOrder] = useState<any>(null);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+
+  useEffect(() => {
+    if (fromHistory && params.id) {
+      setLoadingOrder(true);
+      OrdersApi.myOrders().then(orders => {
+        const found = orders.find(order => order.id === params.id);
+        setRealOrder(found);
+        setLoadingOrder(false);
+      }).catch(err => {
+        console.error('Erreur chargement commande:', err);
+        setLoadingOrder(false);
+      });
+    }
+  }, [fromHistory, params.id]);
+
   const display = {
     image: activity?.image ?? commande.image,
     nom: params.title || activity?.title || commande.nom,
     quantite: params.quantity ? Number(params.quantity) : activity?.quantity ?? commande.quantite,
     price: params.price || (activity?.price as string | undefined),
   } as { image: any; nom: string; quantite: number; price?: string };
+
   // Step: 0 Validation, 1 En cours, 2 Livrée
   const currentStep = (() => {
+    if (realOrder?.status) {
+      switch (realOrder.status) {
+        case 'validation': return 0;
+        case 'en_cours': return 1;
+        case 'livree': return 2;
+        case 'annulee': return 3; // ajouter une étape pour annulé si besoin
+        default: return 0;
+      }
+    }
     const raw = (params as any)?.step;
     const n = Number(raw);
     return Number.isFinite(n) ? n : (activity?.step ?? commande.etape);
@@ -55,21 +84,7 @@ export default function SuivreCommande() {
     );
   }
 
-  const handleVendorAccept = async () => {
-    if (!orderId) return;
-    try {
-      await OrdersApi.validate(orderId);
-      markOrderAccepted(orderId);
-    } catch {}
-  };
 
-  const handleVendorDeliver = async () => {
-    if (!orderId) return;
-    try {
-      await OrdersApi.deliver(orderId);
-      markOrderDeliveredBySeller(orderId);
-    } catch {}
-  };
 
   return (
     <View style={styles.container}>
@@ -99,24 +114,15 @@ export default function SuivreCommande() {
         </View>
       </View>
 
-      {/* Actions vendeur */}
-      {!!orderId && (
-        <View style={[styles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
-          <Text style={{ fontWeight: '600', marginBottom: 12 }}>Actions vendeur</Text>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            {currentStep <= 0 && (
-              <Pressable onPress={handleVendorAccept} style={{ flex: 1, backgroundColor: '#2563EB', padding: 12, borderRadius: 10 }}>
-                <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>Accepter</Text>
-              </Pressable>
-            )}
-            {currentStep === 1 && (
-              <Pressable onPress={handleVendorDeliver} style={{ flex: 1, backgroundColor: '#10B981', padding: 12, borderRadius: 10 }}>
-                <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>Confirmer la livraison</Text>
-              </Pressable>
-            )}
-          </View>
-        </View>
-      )}
+      {/* Statut de la commande */}
+      <View style={[styles.card, { backgroundColor: currentStep === 3 ? '#FEF2F2' : '#FFFFFF', borderColor: currentStep === 3 ? '#FECACA' : '#F3F4F6' }]}>
+        <Text style={{ fontWeight: '600', color: currentStep === 3 ? '#991B1B' : '#6B7280', textAlign: 'center' }}>
+          {currentStep === 0 && "En attente de validation"}
+          {currentStep === 1 && "En cours de préparation"}
+          {currentStep === 2 && "Commande livrée"}
+          {currentStep === 3 && "Commande annulée"}
+        </Text>
+      </View>
 
       {sellerConfirmed && (
         <View style={[styles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>

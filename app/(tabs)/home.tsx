@@ -3,32 +3,39 @@ import Positionnement from "@/components/positionnement";
 import { useSellerProducts } from "@/components/seller-products-context";
 import { ProductsApi } from "@/utils/auth";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { FlatList, Image, ScrollView, Text, View } from "react-native";
 
 
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { products: sellerProducts } = useSellerProducts();
+  const { products: sellerProducts, replaceProducts } = useSellerProducts();
   const [catalog, setCatalog] = useState<any[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const apiProducts = await ProductsApi.list();
-        const mapped = apiProducts.map((p: any) => ({
+  const refreshProducts = useCallback(async () => {
+    try {
+      const apiProducts = await ProductsApi.list();
+      const mapped = apiProducts.map((p: any) => {
+        console.log("Produit backend:", p); // Log pour debug
+        return {
           id: p.id,
-          name: p.name,
-          Prix: p.price,
-          prixPromo: p.promoPrice,
-          image: { uri: (p.images?.[0] || null) },
+          name: p.nom,           // Backend envoie `nom`
+          Prix: Number(p.prix),          // Backend envoie `prix` comme Decimal
+          prixPromo: p.prixPromotion ? Number(p.prixPromotion) : undefined,
+          image: { uri: (p.productImages?.[0]?.url || null) }, // Images via productImages
           isSellerProduct: false,
-        }));
-        setCatalog(mapped);
-      } catch {}
-    })();
+        };
+      });
+      setCatalog(mapped);
+    } catch (error) {
+      console.error('Erreur lors du chargement des produits:', error);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
 
   // Combiner les produits du vendeur (en premier) avec le catalogue backend
   const allProducts = [
@@ -95,4 +102,3 @@ export default function HomeScreen() {
     </Positionnement>
   );
 }
- 

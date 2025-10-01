@@ -23,6 +23,9 @@ type SellerProductsContextValue = {
   replaceProducts: (items: SellerProduct[]) => void;
 };
 
+// Stockage local pour persister les produits par utilisateur
+const STORAGE_KEY = 'seller_products';
+
 const SellerProductsContext = createContext<SellerProductsContextValue | undefined>(undefined);
 
 export const SellerProductsProvider = ({ children }: { children: React.ReactNode }) => {

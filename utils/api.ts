@@ -88,6 +88,13 @@ export async function apiFetch<T = any>(path: string, options: RequestOptions = 
   if (options.auth && authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
+
+  console.log('🔍 API Request:', {
+    url,
+    method: options.method || 'GET',
+    hasAuth: options.auth,
+    authToken: authToken ? `${authToken.substring(0, 20)}...` : null
+  });
   let res: Response;
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? 15000; // 15s par défaut
@@ -105,20 +112,29 @@ export async function apiFetch<T = any>(path: string, options: RequestOptions = 
   } finally {
     clearTimeout(timeoutId);
   }
+  console.log('⬆️ API Response:', {
+    status: res.status,
+    ok: res.ok,
+    contentType: res.headers.get("content-type")
+  });
+
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
     try {
       const err = await res.json();
+      console.log('❌ API Error Response:', err);
       message = err?.message || message;
     } catch {}
     throw new Error(message);
   }
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
-    return (await res.json()) as T;
+    const jsonData = await res.json();
+    console.log('✅ API Success Response:', jsonData);
+    return jsonData as T;
   }
   // @ts-ignore - allow non-JSON
-  return (await res.text()) as T;
+  const textData = await res.text();
+  console.log('✅ API Text Response:', textData);
+  return textData as T;
 }
-
-

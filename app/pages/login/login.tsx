@@ -34,8 +34,10 @@ export default function Login() {
         const res = await AuthApi.login({ email, password });
         // Mettre à jour tout le profil depuis la réponse serveur
         updateUser({
+          id: res.user.id, // Ajouter l'id et le role
           name: res.user.name,
           email: res.user.email,
+          role: res.user.role,
           types: res.user.types,
           speciality: res.user.speciality,
           contact: res.user.contact,

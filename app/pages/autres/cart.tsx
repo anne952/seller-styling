@@ -17,26 +17,8 @@ export default function Cart(){
       Alert.alert('Panier vide', 'Ajoutez des articles avant de passer au paiement.');
       return;
     }
-    try {
-      const payload = {
-        items: items.map(it => ({ productId: String(it.id), quantity: it.quantity })),
-      };
-      const order = await OrdersApi.create(payload);
-      addActivity({
-        id: order.id,
-        type: 'commande',
-        title: items[0]?.name || 'Commande',
-        price: `${totalPrice}F`,
-        quantity: totalCount,
-        date: new Date().toLocaleDateString(),
-        image: items[0]?.image,
-        step: 0,
-      });
-      clearCart();
-      router.push({ pathname: '/pages/autres/suivre-commande', params: { id: order.id, title: items[0]?.name || 'Commande', quantity: String(totalCount), price: `${totalPrice}F`, step: String(0) } });
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.message || "Échec de la création de la commande");
-    }
+    // Stocke temporairement les données du panier pour le paiement
+    router.push('/pages/autres/payement');
   };
 
   return(

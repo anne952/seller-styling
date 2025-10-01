@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
-import { FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
+import Positionnement from "@/components/positionnement";
 
 export default function ReceiptScreen() {
   const params = useLocalSearchParams<{ id?: string; title?: string; quantity?: string; price?: string; date?: string }>();
@@ -44,204 +45,73 @@ export default function ReceiptScreen() {
   const orderDate = params.date ?? '';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Reçu</Text>
-        <View style={styles.badgeMuted}>
-          <Ionicons name="receipt-outline" size={14} color="#374151" />
-          <Text style={styles.badgeMutedText}>#{orderId}</Text>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <View style={styles.cardRowBetween}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-            <Text style={styles.hintText}>  {orderDate || '—'}</Text>
-          </View>
-          <View style={styles.badgePayment}>
-            <Ionicons name="card-outline" size={14} color="#065F46" />
-            <Text style={styles.badgePaymentText}>Flooz</Text>
+    <Positionnement>
+      <View className="mt-16 p-4">
+        <View className="flex flex-row justify-between items-center mb-4">
+          <Text className="text-xl font-bold">Reçu</Text>
+          <View className="flex flex-row items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
+            <Ionicons name="receipt-outline" size={16} color="#374151" />
+            <Text className="text-gray-700 font-semibold text-sm">#{orderId}</Text>
           </View>
         </View>
-        <View style={[styles.cardRowBetween, { marginTop: 10 }]}>
-          <Text style={styles.hintText}>Total</Text>
-          <Text style={styles.totalText}>{total} FCFA</Text>
-        </View>
-      </View>
 
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.cardTitle}>Produits</Text>
-          <Text style={styles.hintText}>{products.length} article(s)</Text>
-        </View>
-        <FlatList
-          data={products}
-          keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          renderItem={({ item }) => (
-            <View style={styles.productRow}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productQty}>Quantité : {item.quantity}</Text>
-                {('originalPrice' in item && item.originalPrice) ? (
-                  <Text style={styles.strikePrice}>{item.originalPrice} FCFA</Text>
-                ) : null}
-              </View>
-              <View style={styles.pricePill}>
-                <Text style={styles.pricePillText}>{item.price * item.quantity} FCFA</Text>
-              </View>
+        <View className="bg-white rounded-xl p-4 mb-4 shadow shadow-gray-200">
+          <View className="flex flex-row justify-between items-center mb-2">
+            <View className="flex flex-row items-center">
+              <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+              <Text className="text-gray-600 ml-2">  {orderDate || '—'}</Text>
             </View>
-          )}
-        />
-      </View>
+            <View className="flex flex-row items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
+              <Ionicons name="card-outline" size={14} color="#065F46" />
+              <Text className="text-green-700 font-semibold text-sm">Flooz</Text>
+            </View>
+          </View>
+          <View className="flex flex-row justify-between items-center">
+            <Text className="text-gray-600">Total</Text>
+            <Text className="text-xl font-bold text-blue-600">{total} F</Text>
+          </View>
+        </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Compte</Text>
-        <View style={styles.row}> 
-          <Text style={styles.hintText}>Sous-total</Text>
-          <Text style={styles.valueText}>{subtotal} FCFA</Text>
+        <View className="bg-white rounded-xl p-4 mb-4 shadow shadow-gray-200">
+          <View className="flex flex-row justify-between items-center mb-4">
+            <Text className="font-semibold">Produits</Text>
+            <Text className="text-gray-600">{products.length} article{products.length > 1 ? 's' : ''}</Text>
+          </View>
+          <View className="space-y-4">
+            {products.map((item, index) => (
+              <View key={item.id}>
+                <View className="flex flex-row items-center">
+                  <Image source={{ uri: item.image }} className="w-16 h-16 rounded-lg mr-4" />
+                  <View className="flex-1">
+                    <Text className="font-semibold text-lg">{item.name}</Text>
+                    <Text className="text-gray-600">Quantité : {item.quantity}</Text>
+                    {('originalPrice' in item && item.originalPrice) ? (
+                      <Text className="line-through text-gray-400">{item.originalPrice} F</Text>
+                    ) : null}
+                  </View>
+                  <View className="bg-blue-100 px-3 py-1 rounded-full">
+                    <Text className="text-blue-700 font-bold">{item.price * item.quantity} F</Text>
+                  </View>
+                </View>
+                {index < products.length - 1 && <View className="h-px bg-gray-200 my-4" />}
+              </View>
+            ))}
+          </View>
         </View>
-        <View style={styles.separator} />
-        <View style={styles.row}> 
-          <Text style={styles.cardTitle}>Total</Text>
-          <Text style={styles.totalText}>{total} FCFA</Text>
+
+        <View className="bg-white rounded-xl p-4 mb-4 shadow shadow-gray-200">
+          <Text className="font-semibold mb-3">Récapitulatif</Text>
+          <View className="flex flex-row justify-between mb-2">
+            <Text className="text-gray-600">Sous-total</Text>
+            <Text className="font-semibold">{subtotal} F</Text>
+          </View>
+          <View className="h-px bg-gray-200 mb-2" />
+          <View className="flex flex-row justify-between">
+            <Text className="font-semibold">Total</Text>
+            <Text className="text-xl font-bold text-blue-600">{total} F</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </Positionnement>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-    padding: 16,
-    paddingTop: 36,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  badgeMuted: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9999,
-  },
-  badgeMutedText: {
-    color: '#374151',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  cardRowBetween: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  hintText: {
-    color: '#6B7280',
-  },
-  valueText: {
-    color: '#111827',
-    fontWeight: '600',
-  },
-  totalText: {
-    color: '#111827',
-    fontWeight: '800',
-    fontSize: 18,
-  },
-  productRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    marginRight: 12,
-    borderRadius: 8,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  productQty: {
-    fontSize: 14,
-    color: "#666",
-  },
-  pricePill: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9999,
-  },
-  pricePillText: {
-    color: '#3730A3',
-    fontWeight: '700',
-  },
-  strikePrice: {
-    textDecorationLine: 'line-through',
-    color: '#9CA3AF',
-    marginTop: 2,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 4,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 8,
-  },
-  badgePayment: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9999,
-  },
-  badgePaymentText: {
-    color: '#065F46',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-});

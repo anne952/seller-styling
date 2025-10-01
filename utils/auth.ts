@@ -57,18 +57,20 @@ export const AuthApi = {
             backendPayload.specialite = payload.specialite;
         }
         
-        console.log('📝 Register payload:', backendPayload);
+        console.log('Register payload:', backendPayload);
         try {
             const raw = await apiFetch<any>(`/api/auth/register`, { method: "POST", body: backendPayload });
-            console.log('📝 Register response:', raw);
-            const mapped: AuthResponse = {
+            console.log(' Register response:', raw);
+        const user = mapBackendUserToAuthUser(raw.user);
+        console.log("Mapped user avatarUrl:", user.avatarUrl);
+        const mapped: AuthResponse = {
                 token: raw.token,
-                user: mapBackendUserToAuthUser(raw.user),
+                user,
             };
             setAuthToken(mapped.token);
             return mapped;
         } catch (error) {
-            console.log('📝 Register error:', error);
+            console.log('Register error:', error);
             throw error;
         }
     },
@@ -78,9 +80,11 @@ export const AuthApi = {
         try {
             const raw = await apiFetch<any>(`/api/auth/login`, { method: "POST", body: backendPayload });
             console.log('🔐 Login response:', raw);
+            const user = mapBackendUserToAuthUser(raw.user);
+            console.log("Mapped user avatarUrl:", user.avatarUrl);
             const mapped: AuthResponse = {
                 token: raw.token,
-                user: mapBackendUserToAuthUser(raw.user),
+                user,
             };
             setAuthToken(mapped.token);
             return mapped;
@@ -146,13 +150,41 @@ export type ProductPayload = {
     description?: string;
     colors?: string[];
     sizes?: string[];
+    categorieId?: number;
+    couleurId?: number;
 };
 
-export type Product = ProductPayload & { id: string };
+export type Product = ProductPayload & {
+    id: string;
+    taille?: string;
+    vendeurId?: number;
+    enPromotion?: boolean;
+    prixPromotion?: number;
+    productImages?: Array<{id: number, url: string}>;
+    couleurs?: Array<{couleur: {nom: string, hex?: string}}>;
+};
 
 export const ProductsApi = {
     list: () => apiFetch<Product[]>(`/api/products`),
-    create: (payload: ProductPayload) => apiFetch<Product>(`/api/products`, { method: "POST", body: payload, auth: true }),
+    create: (payload: ProductPayload) => {
+        // Mapper les champs du payload vers les champs attendus par le backend
+        const body: any = {
+            nom: payload.name,
+            prix: payload.price,
+            description: payload.description,
+            images: payload.images, // Backend attend images comme array de URLs
+            categorieId: payload.categorieId,
+            couleurId: payload.couleurId, // Garder couleurId pour compatibilité
+            // Envoyer toutes les tailles si multiples (backend peut traiter array)
+            tailles: payload.sizes, // Nouveaux champs pour multiples
+            couleurs: payload.colors, // Nouveaux champs pour multiples
+        };
+        // Pour taille, utiliser la première pour compatibilité mais ajoutez aussi les array
+        if (payload.sizes && payload.sizes.length > 0) {
+            body.taille = payload.sizes[0]; // Garde compatibilité avec ancienne API
+        }
+        return apiFetch<Product>(`/api/products`, { method: "POST", body, auth: true });
+    },
     remove: (id: string) => apiFetch<void>(`/api/products/${id}`, { method: "DELETE", auth: true }),
 };
 
@@ -166,7 +198,9 @@ export type Order = {
 export const OrdersApi = {
     create: (payload: { items: Array<{ productId: string; quantity: number }>; note?: string }) =>
         apiFetch<Order>(`/api/orders`, { method: "POST", body: payload, auth: true }),
-    myOrders: () => apiFetch<Order[]>(`/api/orders/me`, { auth: true }),
+    order: (payload: { productId: string; quantity: number; note?: string }) =>
+        apiFetch<Order>(`/api/order`, { method: "POST", body: payload, auth: true }),
+    myOrders: () => apiFetch<Order[]>(`/api/orders/mine`, { auth: true }),
     validate: (id: string) => apiFetch<Order>(`/api/orders/${id}/validate`, { method: "POST", auth: true }),
     cancel: (id: string) => apiFetch<Order>(`/api/orders/${id}/cancel`, { method: "POST", auth: true }),
     deliver: (id: string) => apiFetch<Order>(`/api/orders/${id}/deliver`, { method: "POST", auth: true }),
@@ -198,5 +232,3 @@ export const StatsApi = {
     salesYearly: () => apiFetch(`/api/stats/sales/yearly`, { auth: true }),
     usersLine: () => apiFetch(`/api/stats/users/line`, { auth: true }),
 };
-
-

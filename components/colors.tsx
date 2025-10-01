@@ -1,29 +1,28 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+
+type Color = { id: number; nom: string; hex?: string };
+
+const extractHexFromNom = (nom: string): string | null => {
+  const match = nom.match(/#([0-9A-Fa-f]{6})/);
+  return match ? match[0] : null;
+};
 type ColorSelectorProps = {
-  selectedColors?: string[];
-  onChangeSelectedColors?: (colors: string[]) => void;
+  colors: Color[];
+  selectedColorIds?: number[];
+  onChangeSelectedColorIds?: (ids: number[]) => void;
 };
 
-const ColorSelector = ({ selectedColors: controlledSelected, onChangeSelectedColors }: ColorSelectorProps = {}) => {
-  // Définition des 36 couleurs
-  const colors = [
-    '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF',
-    '#40C4FF', '#18FFFF', '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
-    '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40', '#FF5722', '#795548',
-    '#9E9E9E', '#607D8B', '#000000', '#FFFFFF', '#F44336', '#E91E63',
-    '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
-    '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107'
-  ];
 
-  const [uncontrolledSelected, setUncontrolledSelected] = useState<string[]>([]);
-  const selectedColors = controlledSelected ?? uncontrolledSelected;
+const ColorSelector = ({ colors, selectedColorIds: controlledSelected, onChangeSelectedColorIds }: ColorSelectorProps) => {
+  const [uncontrolledSelected, setUncontrolledSelected] = useState<number[]>([]);
+  const selectedColorIds = controlledSelected ?? uncontrolledSelected;
 
-  const toggleColorSelection = (color: string) => {
-    const exists = selectedColors.includes(color);
-    const next = exists ? selectedColors.filter(c => c !== color) : [...selectedColors, color];
-    if (onChangeSelectedColors) onChangeSelectedColors(next);
+  const toggleColorSelection = (id: number) => {
+    const exists = selectedColorIds.includes(id);
+    const next = exists ? selectedColorIds.filter(c => c !== id) : [...selectedColorIds, id];
+    if (onChangeSelectedColorIds) onChangeSelectedColorIds(next);
     if (!controlledSelected) setUncontrolledSelected(next);
   };
 
@@ -36,17 +35,17 @@ const ColorSelector = ({ selectedColors: controlledSelected, onChangeSelectedCol
         style={styles.scrollView}
         contentContainerStyle={styles.colorsContainer}
       >
-        {colors.map((color, index) => (
+        {colors.map((color) => (
           <TouchableOpacity
-            key={index}
+            key={color.id}
             style={[
               styles.colorCircle,
-              { backgroundColor: color },
-              selectedColors.includes(color) && styles.selectedColor
+              { backgroundColor: color.hex || extractHexFromNom(color.nom) || color.nom },
+              selectedColorIds.includes(color.id) && styles.selectedColor
             ]}
-            onPress={() => toggleColorSelection(color)}
+            onPress={() => toggleColorSelection(color.id)}
           >
-            {selectedColors.includes(color) && (
+            {selectedColorIds.includes(color.id) && (
               <Text style={styles.checkmark}>✓</Text>
             )}
           </TouchableOpacity>
@@ -56,13 +55,17 @@ const ColorSelector = ({ selectedColors: controlledSelected, onChangeSelectedCol
       <View style={styles.selectedContainer}>
         <Text style={styles.selectedTitle}>Couleurs sélectionnées:</Text>
         <View style={styles.selectedColorsList}>
-          {selectedColors.length > 0 ? (
-            selectedColors.map((color, index) => (
-              <View 
-                key={index} 
-                style={[styles.selectedColorChip, { backgroundColor: color }]}
-              />
-            ))
+          {selectedColorIds.length > 0 ? (
+            selectedColorIds.map((id) => {
+              const color = colors.find(c => c.id === id);
+              if (!color) return null;
+              return (
+                <View
+                  key={id}
+                  style={[styles.selectedColorChip, { backgroundColor: color.hex || extractHexFromNom(color.nom) || color.nom }]}
+                />
+              );
+            })
           ) : (
             <Text style={styles.noSelection}>Aucune couleur sélectionnée</Text>
           )}

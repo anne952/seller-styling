@@ -1,30 +1,27 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
-
-
-
+import { Link, useRouter } from "expo-router";
 
 export default function PaymentCodeScreen() {
   const [pin, setPin] = useState("");
+  const router = useRouter();
 
   const handleContinue = () => {
-    // Ici tu peux valider ou envoyer le code PIN
-    console.log("Code PIN saisi:", pin);
-  
+    // Simulation de paiement réussi - quelconque code PIN est accepté
+    console.log("💳 Code PIN saisi:", pin);
+
+    // Simuler paiement réussi automatiquement
+    console.log("✅ Paiement simulé réussi");
+    router.replace("/pages/autres/payement-sucess");
   };
 
   return (
     <View style={styles.container} className="mt-10">
       {/* Bouton retour */}
-      
-        <Link href="/pages/autres/payement" style={styles.backButton}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color="#333" />
-         </Link>
-            
-      
-     
+      </TouchableOpacity>
 
       {/* Texte instruction */}
       <Text style={styles.title}>Entrez votre code PIN</Text>
@@ -41,11 +38,9 @@ export default function PaymentCodeScreen() {
       />
 
       {/* Bouton continuer */}
-      <Link href="/pages/autres/payement-sucess" style={styles.button}>
-      <TouchableOpacity  onPress={handleContinue}>
-        <Text style={styles.buttonText} className="text-center">Continuer</Text>
-      </TouchableOpacity>      
-      </Link>
+      <TouchableOpacity onPress={handleContinue} style={styles.button}>
+        <Text style={styles.buttonText}>Continuer</Text>
+      </TouchableOpacity>
 
     </View>
   );

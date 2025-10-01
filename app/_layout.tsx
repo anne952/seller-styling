@@ -14,9 +14,10 @@ import "../global.css";
 export default function RootLayout() {
   useEffect(() => {
     (async () => {
-      await restoreAuthToken();
       const token = await registerForPushNotificationsAsync();
       if (token) {
+        // Attendre que le token utilisateur soit restauré avant d'envoyer le push token
+        await new Promise(resolve => setTimeout(resolve, 1000));
         try { await UsersApi.postExpoPushToken({ expoPushToken: token }); } catch {}
       }
     })();

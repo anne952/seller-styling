@@ -1,14 +1,18 @@
 import { AuthApi } from "@/utils/auth";
+import { restoreAuthToken } from "@/utils/api";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 type User = {
+	id?: string; // Ajouter id pour identifier le vendeur
 	name: string;
 	email: string;
+	role?: string; // Ajouter role
 	types?: string;
 	speciality?: string;
 	contact?: string;
 	location?: string;
 	comment?: string;
+	avatarUrl?: string;
 };
 
 type UserContextValue = {
@@ -39,19 +43,38 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 	useEffect(() => {
 		const loadUserData = async () => {
 			try {
+				// S'assurer que le token est restauré depuis SecureStore
+				console.log('🔑 Restauration du token...');
+				await restoreAuthToken();
+				console.log('✅ Token restauré');
+
+				console.log('🔄 Chargement données utilisateur depuis AuthApi.me()...');
 				const userData = await AuthApi.me();
-				setUserState({
+				console.log('✅ Données utilisateur reçues:', {
+					id: userData.id,
+					name: userData.name,
+					avatarUrl: userData.avatarUrl,
+					hasAvatar: !!userData.avatarUrl
+				});
+				const newUserData = {
+					id: userData.id, // Ajouter id
 					name: userData.name || "Utilisateur",
 					email: userData.email || "",
+					role: userData.role, // Ajouter role
 					types: userData.types,
 					speciality: userData.speciality,
 					contact: userData.contact,
 					location: userData.location,
 					comment: userData.comment,
-				});
+					avatarUrl: userData.avatarUrl,
+				};
+				setUserState(newUserData);
+				console.log('📝 État utilisateur mis à jour avec avatarUrl:', userData.avatarUrl);
+				return newUserData; // Retourner pour la comparaison
 			} catch (error) {
-				console.log('Erreur chargement données utilisateur:', error);
+				console.log('❌ Erreur chargement données utilisateur:', error);
 				// Garder les données par défaut en cas d'erreur
+				console.log('⚠️ Utilisation des données par défaut');
 			}
 		};
 
@@ -68,5 +91,3 @@ export const useUser = () => {
 	if (!ctx) throw new Error("useUser must be used within UserProvider");
 	return ctx;
 };
-
-

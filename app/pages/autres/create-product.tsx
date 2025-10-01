@@ -1,4 +1,5 @@
 import { useSellerProducts } from "@/components/seller-products-context";
+import { ProductsApi } from "@/utils/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -10,6 +11,7 @@ export default function CreateProduct() {
   const [promoPrice, setPromoPrice] = useState("");
   const [description, setDescription] = useState("");
   const [isPromo, setIsPromo] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -17,24 +19,24 @@ export default function CreateProduct() {
   
   const images = params.images ? JSON.parse(params.images as string) : [];
 
-  const handleCreateProduct = () => {
+  const handleCreateProduct = async () => {
     // Validation
     if (!name.trim()) {
       Alert.alert("Erreur", "Le nom du produit est requis.");
       return;
     }
-    
+
     if (!price.trim()) {
       Alert.alert("Erreur", "Le prix est requis.");
       return;
     }
-    
+
     const priceNum = parseFloat(price);
     if (isNaN(priceNum) || priceNum <= 0) {
       Alert.alert("Erreur", "Veuillez entrer un prix valide.");
       return;
     }
-    
+
     if (isPromo && promoPrice.trim()) {
       const promoPriceNum = parseFloat(promoPrice);
       if (isNaN(promoPriceNum) || promoPriceNum <= 0) {
@@ -47,26 +49,50 @@ export default function CreateProduct() {
       }
     }
 
-    // Créer le produit
-    addProduct({
-      name: name.trim(),
-      price: priceNum,
-      promoPrice: isPromo && promoPrice.trim() ? parseFloat(promoPrice) : undefined,
-      images,
-      description: description.trim() || undefined,
-      isPromo: isPromo && promoPrice.trim() ? true : false,
-    });
+    setIsCreating(true);
 
-    Alert.alert(
-      "Succès", 
-      "Produit créé avec succès !",
-      [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(tabs)/user")
-        }
-      ]
-    );
+    try {
+      // Créer le produit via l'API
+      const createdProduct = await ProductsApi.create({
+        name: name.trim(),
+        price: priceNum,
+        promoPrice: isPromo && promoPrice.trim() ? parseFloat(promoPrice) : undefined,
+        images,
+        description: description.trim() || undefined,
+      });
+
+      // Ajouter le produit créé à partir de la réponse API au contexte local
+      const localProduct = {
+        id: Number(createdProduct.id),
+        name: name.trim(),
+        price: priceNum,
+        promoPrice: isPromo && promoPrice.trim() ? parseFloat(promoPrice) : undefined,
+        images,
+        description: description.trim() || undefined,
+        isPromo: isPromo && promoPrice.trim() ? true : false,
+        createdAt: new Date(),
+        isSellerProduct: true,
+        backendId: createdProduct.id,
+      };
+
+      addProduct(localProduct);
+
+      Alert.alert(
+        "Succès",
+        "Produit créé avec succès !",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(tabs)/user")
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error("Erreur création produit:", error);
+      Alert.alert("Erreur", error?.message || "Échec de la création du produit");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -161,10 +187,11 @@ export default function CreateProduct() {
           <View className="gap-3 mt-6">
             <Pressable
               onPress={handleCreateProduct}
-              className="bg-blue-500 py-4 rounded-lg"
+              disabled={isCreating}
+              className={`py-4 rounded-lg ${isCreating ? 'bg-gray-400' : 'bg-blue-500'}`}
             >
               <Text className="text-center text-white font-semibold text-lg">
-                Créer le produit
+                {isCreating ? "Création en cours..." : "Créer le produit"}
               </Text>
             </Pressable>
             
