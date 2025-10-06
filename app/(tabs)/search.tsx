@@ -58,23 +58,23 @@ export default function SearchScreen() {
 	const filteredProducts = useMemo(() => {
 		const q = query.trim().toLowerCase()
 		if (!q) return []
-		return allProducts.filter((p) => p.name.toLowerCase().includes(q))
+		return allProducts.filter((p) => p.name && typeof p.name === 'string' && p.name.toLowerCase().includes(q))
 	}, [allProducts, query])
 
-	const vendorMatches = useMemo(() => {
-		const q = query.trim().toLowerCase()
-		if (!q) return false
-		const haystack = [
-			user?.name,
-			user?.speciality,
-			user?.types,
-			user?.location,
-		]
-			.filter(Boolean)
-			.join(' ')
-			.toLowerCase()
-		return haystack.includes(q)
-	}, [query, user])
+  const vendorMatches = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return false
+    const haystack = [
+      user?.name,
+      user?.speciality,
+      user?.types,
+      user?.location,
+    ]
+      .filter(Boolean)
+      .join(' ')
+    const haystackStr = haystack ? haystack.toLowerCase() : ''
+    return haystackStr.includes(q)
+  }, [query, user])
 
 	return (
 		<Positionnement>
@@ -127,11 +127,9 @@ export default function SearchScreen() {
 							<FlatList
 								data={filteredProducts}
 								scrollEnabled={false}
-								keyExtractor={(item) => String(item.id)}
+								keyExtractor={(item, index) => String(item.id) + '_' + index.toString()}
+								numColumns={2}
 								contentContainerStyle={{
-									flexDirection: 'row',
-									flexWrap: 'wrap',
-									justifyContent: 'flex-start',
 									marginHorizontal: -8,
 									marginLeft: 8,
 								}}

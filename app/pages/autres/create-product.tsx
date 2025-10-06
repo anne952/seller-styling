@@ -3,7 +3,16 @@ import { ProductsApi } from "@/utils/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 export default function CreateProduct() {
   const [name, setName] = useState("");
@@ -12,11 +21,11 @@ export default function CreateProduct() {
   const [description, setDescription] = useState("");
   const [isPromo, setIsPromo] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  
+
   const router = useRouter();
   const params = useLocalSearchParams();
   const { addProduct } = useSellerProducts();
-  
+
   const images = params.images ? JSON.parse(params.images as string) : [];
 
   const handleCreateProduct = async () => {
@@ -37,7 +46,11 @@ export default function CreateProduct() {
       return;
     }
 
-    if (isPromo && promoPrice.trim()) {
+    if (isPromo) {
+      if (!promoPrice.trim()) {
+        Alert.alert("Erreur", "Veuillez entrer un prix de promotion.");
+        return;
+      }
       const promoPriceNum = parseFloat(promoPrice);
       if (isNaN(promoPriceNum) || promoPriceNum <= 0) {
         Alert.alert("Erreur", "Veuillez entrer un prix de promotion valide.");
@@ -52,16 +65,17 @@ export default function CreateProduct() {
     setIsCreating(true);
 
     try {
-      // Créer le produit via l'API
+      // Création du produit via l'API
       const createdProduct = await ProductsApi.create({
-        name: name.trim(),
-        price: priceNum,
+        nom: name.trim(),
+        prix: priceNum,
         promoPrice: isPromo && promoPrice.trim() ? parseFloat(promoPrice) : undefined,
         images,
         description: description.trim() || undefined,
+        tailles: [], // Pas de tailles définies
+        couleurIds: [], // Pas de couleurs définies
       });
 
-      // Ajouter le produit créé à partir de la réponse API au contexte local
       const localProduct = {
         id: Number(createdProduct.id),
         name: name.trim(),
@@ -77,16 +91,10 @@ export default function CreateProduct() {
 
       addProduct(localProduct);
 
-      Alert.alert(
-        "Succès",
-        "Produit créé avec succès !",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)/user")
-          }
-        ]
-      );
+      // Message + redirection
+      Alert.alert("Succès", "Produit créé avec succès !");
+      router.replace("/(tabs)/home");
+
     } catch (error: any) {
       console.error("Erreur création produit:", error);
       Alert.alert("Erreur", error?.message || "Échec de la création du produit");
@@ -97,6 +105,7 @@ export default function CreateProduct() {
 
   return (
     <View className="flex-1 bg-white">
+      {/* En-tête */}
       <View className="flex-row items-center justify-between p-4 mt-12">
         <Link href="/pages/autres/create-process">
           <Ionicons name="chevron-back-outline" size={24} color="black" />
@@ -130,7 +139,7 @@ export default function CreateProduct() {
             />
           </View>
 
-          {/* Promotion */}
+          {/* Switch promotion */}
           <View className="flex-row items-center justify-between">
             <Text className="text-lg font-semibold">En promotion</Text>
             <Switch
@@ -141,7 +150,7 @@ export default function CreateProduct() {
             />
           </View>
 
-          {/* Prix de promotion */}
+          {/* Prix promo */}
           {isPromo && (
             <View>
               <Text className="text-lg font-semibold mb-2">Prix de promotion (FCFA)</Text>
@@ -169,12 +178,15 @@ export default function CreateProduct() {
             />
           </View>
 
-          {/* Images sélectionnées */}
+          {/* Images */}
           <View>
             <Text className="text-lg font-semibold mb-2">Images ({images.length})</Text>
             <View className="flex-row flex-wrap gap-2">
               {images.map((uri: string, index: number) => (
-                <View key={index} className="w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
+                <View
+                  key={index}
+                  className="w-20 h-20 rounded-lg overflow-hidden border border-gray-300"
+                >
                   <Text className="text-xs text-center p-1 bg-gray-100">
                     Image {index + 1}
                   </Text>
@@ -188,13 +200,16 @@ export default function CreateProduct() {
             <Pressable
               onPress={handleCreateProduct}
               disabled={isCreating}
-              className={`py-4 rounded-lg ${isCreating ? 'bg-gray-400' : 'bg-blue-500'}`}
+              className={`flex-row justify-center items-center py-4 rounded-lg ${
+                isCreating ? "bg-gray-400" : "bg-blue-500"
+              }`}
             >
+              {isCreating && <ActivityIndicator size="small" color="#fff" className="mr-2" />}
               <Text className="text-center text-white font-semibold text-lg">
                 {isCreating ? "Création en cours..." : "Créer le produit"}
               </Text>
             </Pressable>
-            
+
             <Link href="/pages/autres/create-process">
               <Pressable className="bg-gray-200 py-4 rounded-lg">
                 <Text className="text-center font-semibold text-lg">

@@ -1,5 +1,6 @@
-import { OrdersApi } from '@/utils/auth';
+import { OrdersApi, ProductsApi } from '@/utils/auth';
 import { notifyNow } from '@/utils/notifications';
+import { useUser } from '@/components/use-context';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 export type ActivityItem = {
@@ -32,6 +33,7 @@ const ActivityContext = createContext<ActivityContextValue | undefined>(undefine
 const initialActivities: ActivityItem[] = [];
 
 export function ActivityProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useUser();
   const [activities, setActivities] = useState<ActivityItem[]>(initialActivities);
 
   const addActivity = (item: ActivityItem) => {
@@ -79,31 +81,53 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       en_cours: 1,
       livree: 2,
     };
-    const mapOrdersToActivities = (orders: any[]): ActivityItem[] => {
-      return orders.map((o: any) => ({
-        id: String(o.id),
-        type: 'commande',
-        title: o.nom || `Commande #${o.id}`,
-        price: `${(o.total ?? o.montant ?? 0).toString()}F`,
-        quantity: Array.isArray(o.items) ? o.items.reduce((a: number, it: any) => a + (it.quantity ?? 0), 0) : 1,
-        date: new Date(o.date ?? o.createdAt ?? Date.now()).toLocaleString(),
-        step: statusToStep[o.status] ?? 0,
-        sellerConfirmed: o.status === 'livree',
-        clientConfirmed: false,
-        clientDisputed: false,
-      }));
+    const mapOrdersToActivities = (orders: any[], allProducts?: any[]): ActivityItem[] => {
+      return orders.map((o: any) => {
+        let image = undefined;
+        let productTitle = o.nom || `Commande #${o.id}`;
+        let quantity = 1;
+        // Si allProducts fourni (vendeurs), trouver le produit et son image depuis ligneCommande
+        if (allProducts && Array.isArray(o.ligneCommande)) {
+          const firstItem = o.ligneCommande[0];
+          if (firstItem) {
+            const product = allProducts.find(p => p.id == firstItem.produitId);
+            if (product) {
+              image = product.productImages?.[0]?.url;
+              productTitle = product.nom || productTitle;
+            }
+          }
+          quantity = o.ligneCommande.reduce((a: number, it: any) => a + (it.quantite ?? 1), 0);
+        }
+        return {
+          id: String(o.id),
+          type: 'commande',
+          title: productTitle,
+          price: `${(o.montant ?? 0).toString()}F`,
+          quantity,
+          date: new Date(o.date).toLocaleString(),
+          image,
+          step: statusToStep[o.status] ?? 0,
+          sellerConfirmed: o.status === 'livree',
+          clientConfirmed: false,
+          clientDisputed: false,
+        };
+      });
     };
     const tick = async () => {
       try {
+        // Charger les achats de l'utilisateur (vendeurs peuvent aussi acheter)
         const orders = await OrdersApi.myOrders();
+        const allProducts = await ProductsApi.list();
         if (!mounted) return;
-        setActivities(mapOrdersToActivities(orders));
-      } catch {}
+        setActivities(mapOrdersToActivities(orders, allProducts));
+      } catch (error) {
+        console.error('Erreur chargement historiques:', error);
+      }
     };
     const interval = setInterval(tick, 15000);
     tick();
     return () => { mounted = false; clearInterval(interval); };
-  }, []);
+  }, [user?.role, user?.id]);
 
   const value = useMemo(
     () => ({
@@ -126,5 +150,3 @@ export function useActivity() {
   if (!ctx) throw new Error('useActivity must be used within ActivityProvider');
   return ctx;
 }
-
-

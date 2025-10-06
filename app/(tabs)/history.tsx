@@ -112,13 +112,13 @@ export default function HistoryScreen() {
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-            <Text style={{ color: '#1e40af', fontWeight: '700' }}>{item.price || '—'}</Text>
+            <Text style={{ color: '#1e40af', fontWeight: '700' }}>{item.price ? `${item.price}` : '—'}</Text>
           </View>
           <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-            <Text style={{ color: '#991b1b', fontWeight: '700' }}>Qté: {item.quantity}</Text>
+            <Text style={{ color: '#991b1b', fontWeight: '700' }}>Qté: {String(item.quantity)}</Text>
           </View>
         </View>
-        <Text style={{ color: '#6b7280', fontSize: 12 }}>{item.date}</Text>
+        <Text style={{ color: '#6b7280', fontSize: 12 }}>{String(item.date)}</Text>
         {!selectMode && (
           item.type === 'commande' ? (
             <Link
@@ -200,7 +200,7 @@ export default function HistoryScreen() {
       {activities.length > 0 && (
         <FlatList
           data={activities}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id + '_' + index.toString()}
           renderItem={renderItem}
           contentContainerStyle={{ paddingVertical: 8 }}
         />
@@ -208,4 +208,3 @@ export default function HistoryScreen() {
     </Positionnement>
   );
 }
-   

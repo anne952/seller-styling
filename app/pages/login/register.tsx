@@ -49,7 +49,19 @@ export default function Register() {
           typeCouture: selectedTypeCouture,
           specialite: selectedSpecialite
         });
-        updateUser({ name: res.user.name, email: res.user.email });
+        // Mettre à jour tout le profil depuis la réponse serveur
+        updateUser({
+          id: res.user.id, // Ajouter l'id et le role
+          name: res.user.name,
+          email: res.user.email,
+          role: res.user.role,
+          types: res.user.types,
+          speciality: res.user.speciality,
+          contact: res.user.contact,
+          location: res.user.location,
+          comment: res.user.comment,
+          avatarUrl: res.user.avatarUrl,
+        });
         await afterRegister();
         router.replace("/(tabs)/home");
       } catch (e: any) {

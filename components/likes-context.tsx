@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { LikesApi } from "@/utils/auth";
 
 type LikesContextValue = {
 	likedIds: Set<number>;
@@ -11,13 +12,24 @@ const LikesContext = createContext<LikesContextValue | undefined>(undefined);
 export const LikesProvider = ({ children }: { children: React.ReactNode }) => {
 	const [likedIdsState, setLikedIdsState] = useState<Set<number>>(new Set());
 
+	useEffect(() => {
+		LikesApi.list().then(likes => {
+			setLikedIdsState(new Set(likes.map((l: any) => Number(l.produitId))));
+		}).catch(err => console.error('Erreur chargement likes:', err));
+	}, []);
+
 	const toggleLike = useCallback((id: number) => {
 		setLikedIdsState((prev) => {
 			const next = new Set(prev);
-			if (next.has(id)) {
+			const wasLiked = next.has(id);
+			if (wasLiked) {
 				next.delete(id);
+				// Remove from server (ignore error)
+				LikesApi.remove(id).catch(err => console.error('Erreur remove like:', err));
 			} else {
 				next.add(id);
+				// Add to server (ignore error)
+				LikesApi.add(id).catch(err => console.error('Erreur add like:', err));
 			}
 			return next;
 		});
@@ -40,6 +52,3 @@ export const useLikes = () => {
 	}
 	return ctx;
 };
-
-
-

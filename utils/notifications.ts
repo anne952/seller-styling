@@ -8,7 +8,7 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
-  }) as any,
+  }),
 });
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
@@ -47,5 +47,3 @@ export async function notifyNow(title: string, body?: string) {
     });
   } catch {}
 }
-
-

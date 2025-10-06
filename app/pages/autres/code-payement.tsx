@@ -1,19 +1,25 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, useLocalSearchParams } from "expo-router";
 
 export default function PaymentCodeScreen() {
   const [pin, setPin] = useState("");
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const method = params.method as string || 'flooz';
 
   const handleContinue = () => {
     // Simulation de paiement réussi - quelconque code PIN est accepté
     console.log("💳 Code PIN saisi:", pin);
+    console.log("💳 Moyen paiement:", method);
 
     // Simuler paiement réussi automatiquement
     console.log("✅ Paiement simulé réussi");
-    router.replace("/pages/autres/payement-sucess");
+    router.replace({
+      pathname: "/pages/autres/payement-sucess",
+      params: { method }
+    });
   };
 
   return (

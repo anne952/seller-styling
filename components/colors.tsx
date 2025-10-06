@@ -12,16 +12,19 @@ type ColorSelectorProps = {
   colors: Color[];
   selectedColorIds?: number[];
   onChangeSelectedColorIds?: (ids: number[]) => void;
+  single?: boolean;
 };
 
 
-const ColorSelector = ({ colors, selectedColorIds: controlledSelected, onChangeSelectedColorIds }: ColorSelectorProps) => {
+const ColorSelector = ({ colors, selectedColorIds: controlledSelected, onChangeSelectedColorIds, single = false }: ColorSelectorProps) => {
   const [uncontrolledSelected, setUncontrolledSelected] = useState<number[]>([]);
   const selectedColorIds = controlledSelected ?? uncontrolledSelected;
 
   const toggleColorSelection = (id: number) => {
     const exists = selectedColorIds.includes(id);
-    const next = exists ? selectedColorIds.filter(c => c !== id) : [...selectedColorIds, id];
+    const next = single
+      ? exists ? [] : [id]
+      : exists ? selectedColorIds.filter(c => c !== id) : [...selectedColorIds, id];
     if (onChangeSelectedColorIds) onChangeSelectedColorIds(next);
     if (!controlledSelected) setUncontrolledSelected(next);
   };

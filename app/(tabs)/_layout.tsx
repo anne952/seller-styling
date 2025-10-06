@@ -24,7 +24,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Accueil',
+          tabBarLabel: 'Accueil',
           tabBarIcon: ({ color, size, focused }) => (
             <PressableIcon
               name={focused ? 'home' : 'home-outline'}
@@ -38,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'Historique',
+          tabBarLabel: 'Historique',
           tabBarIcon: ({ color, size, focused }) => (
             <PressableIcon
               name={focused ? 'time' : 'time-outline'}
@@ -53,7 +53,7 @@ export default function TabLayout() {
 <Tabs.Screen
         name="search"
         options={{
-          title: 'Rechercher',
+          tabBarLabel: 'Rechercher',
           tabBarIcon: ({ color, size, focused }) => (
             <PressableIcon
               name={focused ? 'search' : 'search-outline'}
@@ -68,7 +68,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="wallet"
         options={{
-          title: 'Portefeuille',
+          tabBarLabel: 'Portefeuille',
           tabBarIcon: ({ color, size, focused }) => <WalletTabIcon color={color} size={size} focused={focused} />,
         }}
       />
@@ -76,7 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="user"
         options={{
-          title: 'Profil',
+          tabBarLabel: 'Profil',
           tabBarIcon: ({ color, size, focused }) => (
             <PressableIcon
               name={focused ? 'person' : 'person-outline'}
@@ -92,14 +92,13 @@ export default function TabLayout() {
 }
 
 function WalletTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
-  const { totalCount } = useCart();
   return (
     <PressableIcon
       name={focused ? 'wallet' : 'wallet-outline'}
       size={size}
       activeColor={color}
       inactiveColor={color}
-      showDot={totalCount > 0}
+      showDot={false}
     />
   );
 }

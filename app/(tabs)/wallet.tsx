@@ -35,25 +35,72 @@ export default function WalletScreen() {
     setDashboard(null);
     setMonthlySeries(null);
     try {
-      const cards = await StatsApi.dashboardCards();
-      if (mountedRef && !mountedRef.current) return;
-      setDashboard({
-        totalRevenue: Number(cards?.totalRevenue ?? cards?.total ?? 0),
-        monthlyRevenue: Number(cards?.monthlyRevenue ?? cards?.month ?? 0),
-        yearlyRevenue: Number(cards?.yearlyRevenue ?? cards?.year ?? 0),
-      });
-    } catch {
-      // Afficher 0 si aucune activité / erreur
-      setDashboard({ totalRevenue: 0, monthlyRevenue: 0, yearlyRevenue: 0 });
-    }
-    try {
+      console.log('🔄 Début fetchStats - appel API sales/yearly...');
+      // Utiliser seulement l'API sales/yearly pour calculer les gains
       const yearly = await StatsApi.salesYearly();
       if (mountedRef && !mountedRef.current) return;
-      const values: number[] = Array.isArray(yearly)
-        ? yearly.map((m: any) => Number(m?.total ?? m?.value ?? 0))
-        : new Array(12).fill(0);
+      
+      console.log('📊 Données yearly reçues:', yearly);
+      console.log('📊 Type de données:', typeof yearly, 'Array?', Array.isArray(yearly));
+      
+      // Calculer les totaux à partir des données yearly
+      // L'API peut retourner deux formats :
+      // Nouveau: [{"month": 1, "total": 1000}, {"month": 2, "total": 1500}, ...]
+      // Ancien: [{"_sum": {"montant": "25000"}, "date": "2025-10-05T20:49:49.860Z"}, ...]
+      let values: number[] = new Array(12).fill(0);
+      
+      if (Array.isArray(yearly)) {
+        // Vérifier le format des données
+        if (yearly.length > 0 && yearly[0].month && yearly[0].total !== undefined) {
+          // Nouveau format : [{"month": 1, "total": 1000}, ...]
+          values = yearly.map((m: any) => Number(m?.total ?? 0));
+          console.log('📊 Format nouveau détecté');
+        } else if (yearly.length > 0 && yearly[0]._sum && yearly[0].date) {
+          // Ancien format : [{"_sum": {"montant": "25000"}, "date": "..."}, ...]
+          console.log('📊 Format ancien détecté, conversion en cours...');
+          
+          // Grouper par mois et additionner
+          const monthlyTotals = new Array(12).fill(0);
+          yearly.forEach((sale: any) => {
+            const date = new Date(sale.date);
+            const month = date.getMonth(); // 0-11
+            const amount = Number(sale._sum?.montant || 0);
+            monthlyTotals[month] += amount;
+          });
+          values = monthlyTotals;
+          console.log('📊 Conversion terminée:', values);
+        }
+      }
+      
+      // Calculer les gains totaux (somme de tous les mois)
+      const totalRevenue = values.reduce((sum, val) => sum + val, 0);
+      
+      // Calculer les gains du mois en cours
+      const currentMonth = new Date().getMonth(); // 0-11
+      const monthlyRevenue = values[currentMonth] || 0;
+      
+      // Calculer les gains de l'année (déjà calculé dans totalRevenue)
+      const yearlyRevenue = totalRevenue;
+      
+      console.log('💰 Calculs gains:', {
+        totalRevenue,
+        monthlyRevenue,
+        yearlyRevenue,
+        currentMonth: currentMonth + 1,
+        values
+      });
+      
+      setDashboard({
+        totalRevenue,
+        monthlyRevenue,
+        yearlyRevenue,
+      });
+      
       setMonthlySeries(values.length === 12 ? values : new Array(12).fill(0));
-    } catch {
+    } catch (error) {
+      console.error('Erreur récupération stats vendeur:', error);
+      // Afficher 0 si aucune activité / erreur
+      setDashboard({ totalRevenue: 0, monthlyRevenue: 0, yearlyRevenue: 0 });
       setMonthlySeries(new Array(12).fill(0));
     }
   };
@@ -102,6 +149,9 @@ export default function WalletScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28}}>
         <View className="flex-row items-center justify-between mb-3 ">
           <Text className="text-xl font-extrabold">Portefeuille</Text>
+          <Pressable onPress={() => fetchStats()} className="bg-blue-500 px-3 py-1 rounded">
+            <Text className="text-white text-sm">🔄 Rafraîchir</Text>
+          </Pressable>
         </View>
 
         <View className="flex-row items-center self-center bg-gray-100 rounded-full p-1 mb-5" style={{ gap: 6 }}>

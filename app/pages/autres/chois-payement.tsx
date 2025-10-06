@@ -44,7 +44,10 @@ export default function ChoosePaymentScreen() {
 
       {/* Bouton continuer (link vers la page suivante) */}
       {selected ? (
-        <Link href="/pages/autres/code-payement" style={styles.button}>
+        <Link href={{
+          pathname: "/pages/autres/code-payement",
+          params: { method: selected }
+        }} style={styles.button}>
           <Text style={styles.buttonText}>Continuer</Text>
         </Link>
       ) : (

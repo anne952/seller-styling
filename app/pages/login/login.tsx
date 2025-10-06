@@ -43,6 +43,7 @@ export default function Login() {
           contact: res.user.contact,
           location: res.user.location,
           comment: res.user.comment,
+          avatarUrl: res.user.avatarUrl,
         });
         await afterLogin();
         router.replace("/(tabs)/home");

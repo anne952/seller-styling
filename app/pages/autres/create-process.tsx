@@ -24,7 +24,8 @@ export default function CreateProcess() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [availableCategories, setAvailableCategories] = useState<Array<{id: number, type: string}>>([]);
-  const [availableColors, setAvailableColors] = useState<Array<{id: number, nom: string}>>([]);
+  const [availableColors, setAvailableColors] = useState<Array<{id: number, nom: string, hex?: string}>>([]);
+  const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
   const { addProduct } = useSellerProducts();
   const isDataLoadedRef = useRef(false);
@@ -204,6 +205,12 @@ export default function CreateProcess() {
   };
 
   const handleCreateProduct = async () => {
+    if (isCreating) {
+      console.log("⚠️ Création déjà en cours, ignoré");
+      return;
+    }
+    
+    setIsCreating(true);
     console.log("🚀 DÉBUT DE CRÉATION DU PRODUIT");
     console.log("📊 Données collectées:");
     console.log("- Nom:", name);
@@ -211,7 +218,7 @@ export default function CreateProcess() {
     console.log("- Prix promo:", promoPrice);
     console.log("- Description:", description);
     console.log("- Catégorie sélectionnée:", selectedCategory);
-  console.log("- Couleurs sélectionnées:", selectedColorIds);
+    console.log("- Couleurs sélectionnées:", selectedColorIds);
     console.log("- Tailles sélectionnées:", selectedSizes);
     console.log("- Images sélectionnées:", selectedImages.length);
 
@@ -219,18 +226,21 @@ export default function CreateProcess() {
     if (selectedImages.length === 0) {
       Alert.alert("Erreur", "Veuillez sélectionner au moins une image.");
       console.log("❌ Erreur: Aucune image sélectionnée");
+      setIsCreating(false);
       return;
     }
 
     if (!name.trim()) {
       Alert.alert("Erreur", "Le nom du produit est requis.");
       console.log("❌ Erreur: Nom manquant");
+      setIsCreating(false);
       return;
     }
 
     if (!price.trim()) {
       Alert.alert("Erreur", "Le prix est requis.");
       console.log("❌ Erreur: Prix manquant");
+      setIsCreating(false);
       return;
     }
 
@@ -238,6 +248,7 @@ export default function CreateProcess() {
     if (isNaN(priceNum) || priceNum <= 0) {
       Alert.alert("Erreur", "Veuillez entrer un prix valide.");
       console.log("❌ Erreur: Prix invalide");
+      setIsCreating(false);
       return;
     }
 
@@ -246,11 +257,13 @@ export default function CreateProcess() {
       if (isNaN(promoPriceNum) || promoPriceNum <= 0) {
         Alert.alert("Erreur", "Veuillez entrer un prix de promotion valide.");
         console.log("❌ Erreur: Prix promo invalide");
+        setIsCreating(false);
         return;
       }
       if (promoPriceNum >= priceNum) {
         Alert.alert("Erreur", "Le prix de promotion doit être inférieur au prix normal.");
         console.log("❌ Erreur: Prix promo supérieur au prix normal");
+        setIsCreating(false);
         return;
       }
     }
@@ -272,23 +285,18 @@ export default function CreateProcess() {
       const categorieId = selectedCategory || undefined;
       console.log("🏷️ Catégorie sélectionnée ID:", categorieId);
 
-      // couleurId dynamique : id de la première couleur sélectionnée si dispo
-      let couleurId: number | undefined = undefined;
-      if (selectedColorIds.length > 0 && availableColors.length > 0) {
-        couleurId = selectedColorIds[0];
-      }
-      console.log("🎨 Couleur ID sélectionnée:", couleurId);
+      // Couleurs sélectionnées
+      console.log("🎨 Couleurs IDs sélectionnées:", selectedColorIds);
 
       const payload = {
-        name: name.trim(),
-        price: priceNum,
+        nom: name.trim(),
+        prix: priceNum,
         promoPrice: promoPrice.trim() ? parseFloat(promoPrice) : undefined,
         images: uploadedImages,
         description: description.trim() || undefined,
-  colors: validColors.map(c => c.nom),
-        sizes: selectedSizes,
+        tailles: selectedSizes,
         categorieId,
-        ...(couleurId !== undefined ? { couleurId } : {}),
+        couleurIds: selectedColorIds,
       };
 
       if (selectedColorIds.length !== validColors.length) {
@@ -304,14 +312,14 @@ export default function CreateProcess() {
 
       // Update local context for immediate UI feedback
       addProduct({
-        name: created.name,
-        price: created.price,
-        promoPrice: created.promoPrice,
-        images: created.images,
+        name: created.nom,
+        price: created.prix,
+        promoPrice: created.prixPromotion,
+        images: (created.productImages || []).map((img: any) => img.url),
         description: created.description,
-        isPromo: !!created.promoPrice,
-        colors: created.colors,
-        sizes: created.sizes,
+        isPromo: created.enPromotion,
+        colors: validColors.map(c => c.hex || '#cccccc'), // Use all selected colors hex for local display
+        sizes: created.tailles,
         backendId: created.id,
       } as any);
       console.log("📱 Contexte local mis à jour");
@@ -332,6 +340,8 @@ export default function CreateProcess() {
       console.error("📋 Message d'erreur:", e?.message);
       console.error("📋 Stack:", e?.stack);
       Alert.alert("Erreur", e?.message || "Échec de la création du produit");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -429,8 +439,8 @@ export default function CreateProcess() {
 
       {currentStep === 2 && (
         <View>
-          <Text className="text-center font-semibold mb-2">Choisissez la ou les couleurs</Text>
-          <ColorSelector colors={availableColors} selectedColorIds={selectedColorIds} onChangeSelectedColorIds={setSelectedColorIds} />
+          <Text className="text-center font-semibold mb-2">Choisissez une couleur</Text>
+        <ColorSelector colors={availableColors} selectedColorIds={selectedColorIds} onChangeSelectedColorIds={setSelectedColorIds} />
         </View>
       )}
 
@@ -491,9 +501,16 @@ export default function CreateProcess() {
 
         <Text className="text-gray-600">Étape {currentStep + 1} / 8</Text>
 
-        <Pressable onPress={goNext}>
-          <View className="bg-blue-500 p-3 rounded-lg">
-            <Text className="text-white font-semibold">{currentStep === 7 ? "Créer le produit" : "Suivant"}</Text>
+        <Pressable onPress={goNext} disabled={isCreating}>
+          <View className={`p-3 rounded-lg ${isCreating ? "bg-gray-400" : "bg-blue-500"}`}>
+            {isCreating ? (
+              <View className="flex-row items-center gap-2">
+                <Text className="text-white font-semibold">Création...</Text>
+                <Text className="text-white">⏳</Text>
+              </View>
+            ) : (
+              <Text className="text-white font-semibold">{currentStep === 7 ? "Créer le produit" : "Suivant"}</Text>
+            )}
           </View>
         </Pressable>
       </View>

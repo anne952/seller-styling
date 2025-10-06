@@ -4,7 +4,6 @@ import Positionnement from "@/components/positionnement";
 import { useSellerProducts } from "@/components/seller-products-context";
 import { useUser } from "@/components/use-context";
 import List from "@/scripts/listProduit";
-import { OrdersApi } from "@/utils/auth";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -69,16 +68,23 @@ export default function Vu(){
   const produitPrixPromo = (Number(produit?.prixPromotion) ?? produit?.prixPromo ?? (prixPromoParam !== undefined ? Number(prixPromoParam) : undefined));
 
   // Charger les vraies tailles et couleurs depuis la DB
-  const availableSizes = produit?.taille ? [produit.taille] : ["S", "M", "XL"]; // Taille depuis DB, fallback statique
-  const availableColors = produit?.couleurs?.map((c: any) => ({
-    key: c.couleur?.nom || c.nom,
-    hex: c.couleur?.hex,
-    className: `bg-[${c.couleur?.hex || '#ccc'}]` // Style dynamique avec la couleur réelle
-  })) || [
-    { key: "black", className: "bg-black" },
-    { key: "gray", className: "bg-slate-500" },
-    { key: "blue", className: "bg-blue-400" }
-  ];
+  // Utiliser les lists directes si présentes (format POST), sinon mapper les relations (format GET)
+  const taillesData = produit?.taillesList || (produit?.tailles && Array.isArray(produit.tailles) ? produit.tailles.map((t: any) => t.taille) : ["S", "M", "XL"]);
+  const availableSizes = taillesData;
+  const couleursData = produit?.couleursList || (produit?.couleurs && Array.isArray(produit.couleurs) ? produit.couleurs.map((c: any) => c.couleur) : []);
+  
+  console.log('🔍 View - Données produit:', {
+    id: produit?.id,
+    nom: produit?.nom,
+    tailles: taillesData,
+    couleurs: couleursData,
+    produit: produit
+  });
+  
+  const availableColors = couleursData.map((c: any) => ({
+    key: c.nom,
+    hex: c.hex
+  }));
 
   const discountPercent = typeof produitPrixPromo !== "undefined" && produitPrixPromo > 0
     ? Math.max(0, Math.round(((produitPrixPromo - produitPrix) / produitPrix) * -100))
@@ -198,7 +204,7 @@ export default function Vu(){
                   </Pressable>
                 </View>
                 <View className="mt-4">
-                     <View className="taille flex flex-row justify-center p-4 gap-3">
+                     <View className="taille flex flex-row flex-wrap justify-center p-4 gap-3">
                         {availableSizes.map((size: string) => {
                           const isSelected = selectedSize === size;
                           const containerClass = isSelected ? "bg-blue-600 border border-blue-600" : "bg-white border border-gray-300";
@@ -223,9 +229,9 @@ export default function Vu(){
                                 key={c.key}
                                 accessibilityRole="button"
                                 onPress={() => setSelectedColor(c.key)}
-                                className={`w-10 h-10 rounded-full items-center justify-center ${isSelected ? "border-2 border-blue-600" : "border border-gray-300"}`}
+                                className={`w-10 h-10  items-center justify-center ${isSelected ? "border-2 border-blue-600" : "border border-gray-300"}`}
                               >
-                                <View className={`w-8 h-8 rounded-full ${c.className}`} />
+                                <View className="w-8 h-8" style={{ backgroundColor: c.hex || '#ccc' }} />
                               </Pressable>
                             );
                           })}

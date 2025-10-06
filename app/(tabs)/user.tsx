@@ -337,7 +337,7 @@ export default function HomeScreen() {
                 <FlatList
                   data={products}
                   numColumns={2}
-                  keyExtractor={(item) => String(item.backendId || item.id)}
+                  keyExtractor={(item, index) => String(item.backendId || item.id) + '_' + index.toString()}
                   columnWrapperStyle={{
                     justifyContent: "space-between",
                     marginBottom: 16,

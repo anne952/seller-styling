@@ -1,16 +1,20 @@
 import { useActivity } from "@/components/activity-context";
 import { useCart } from "@/components/cart-context";
+import { useUser } from "@/components/use-context";
 import { OrdersApi } from "@/utils/auth";
+import type { OrderPayload } from "@/utils/auth";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
-
-
 export default function PaymentSuccessScreen({ navigation }: any) {
+  const params = useLocalSearchParams();
+  const methodId = params.method as string || 'flooz';
+  const paymentMethod = methodId === 'flooz' ? 'Flooz' : methodId === 'mixx' ? 'Tmoney' : 'Flooz';
   const { addActivity } = useActivity();
   const { items, totalPrice, totalCount, clearCart } = useCart();
+  const { user } = useUser();
   const router = useRouter();
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [orderData, setOrderData] = useState<{
@@ -22,7 +26,7 @@ export default function PaymentSuccessScreen({ navigation }: any) {
   } | null>(null);
 
   React.useEffect(() => {
-    const createOrderAfterPayment = async () => {
+    const validatePayment = async () => {
       if (items.length === 0) {
         Alert.alert("Erreur", "Aucun article dans le panier");
         router.replace('/(tabs)/home');
@@ -31,16 +35,32 @@ export default function PaymentSuccessScreen({ navigation }: any) {
 
       setCreatingOrder(true);
       try {
-        console.log("💳 Création de la commande après paiement...");
+        console.log("💳 Validation du paiement...");
 
-        const payload = {
-          items: items.map(it => ({ productId: String(it.id), quantity: it.quantity })),
-        };
-
-        const order = await OrdersApi.create(payload);
-        console.log("✅ Commande créée:", order);
+        // Simulation validation paiement (backend répondrait "paiement confirmé")
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simule appel API
+        console.log("✅ Paiement validé avec succès");
 
         const orderTitle = items[0]?.name || 'Commande';
+
+        // Créer la commande seulement si validation réussie
+        const payload: OrderPayload = {
+          items: items.map(it => ({
+            productId: String(it.id),
+            quantity: it.quantity,
+            price: it.price // Prix unitaire requis
+          })),
+          totalAmount: totalPrice, // Montant total pour Prisma Schema
+          location: user?.location || "Non spécifié", // Localisation acheteur
+          paymentMethod: paymentMethod, // Selon choix utilisateur
+        };
+
+        console.log("🏪 Création commande finale pour acheteur :", user?.id);
+        console.log("📦 Payload commande:", JSON.stringify(payload, null, 2));
+
+        const order = await OrdersApi.create(payload);
+        console.log("✅ Commande créée avec succès:", JSON.stringify(order, null, 2));
+        console.log("🔍 Détails commande - ID:", order.id, "Status:", order.status);
 
         // Stocker les données pour le lien
         setOrderData({
@@ -63,21 +83,21 @@ export default function PaymentSuccessScreen({ navigation }: any) {
           step: 0,
         });
 
-        // Vider le panier seulement après succès
-        clearCart();
-        console.log("🛒 Panier vidé après commande");
+        // Ne pas vider le panier automatiquement, laisser l'utilisateur le faire
+        // clearCart();
+        console.log("✅ Commande créée, panier conservé pour l'utilisateur");
 
       } catch (error: any) {
-        console.error("❌ Erreur création commande:", error);
-        Alert.alert("Erreur", `Échec de la création de commande: ${error?.message || 'Erreur inconnue'}`);
+        console.error("❌ Erreur validation paiement:", error);
+        Alert.alert("Erreur", `Échec du paiement: ${error?.message || 'Erreur inconnue'}`);
         router.replace('/(tabs)/home');
       } finally {
         setCreatingOrder(false);
       }
     };
 
-    createOrderAfterPayment();
-  }, [items, totalPrice, totalCount, addActivity, clearCart, router]);
+    validatePayment();
+  }, [items, totalPrice, totalCount, addActivity, clearCart, router, user]);
   return (
     <View style={styles.container}>
       {/* Titre */}

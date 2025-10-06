@@ -9,42 +9,13 @@ export const ApiConfig = {
     // 1) Si la variable d'env est fournie, on l'utilise telle quelle,
     //    sauf cas particulier Android émulateur.
     const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-    console.log('🔧 API Config - Environment URL:', envUrl);
+    console.log('🔧 API Config - Environment URL:', `'${envUrl}'`);
     console.log('🔧 API Config - Platform:', Platform.OS);
-    
-    if (envUrl) {
-      try {
-        const url = new URL(envUrl);
-        if (
-          Platform.OS === 'android' &&
-          (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
-        ) {
-          url.hostname = '10.0.2.2';
-        }
-        const finalUrl = url.toString().replace(/\/$/, "");
-        console.log('🔧 API Config - Final URL:', finalUrl);
-        return finalUrl;
-      } catch {
-        console.log('🔧 API Config - Using env URL as string:', envUrl);
-        return envUrl;
-      }
-    }
 
-    // 2) Sinon, déduire en fonction de la plateforme
-    if (Platform.OS === 'android') {
-      // Force l'IP locale pour tous les appareils Android
-      console.log('🔧 API Config - Using Android with local IP');
-      return 'http://192.168.1.91:4000';
-    }
-    if (Platform.OS === 'web') {
-      // Utiliser l'hôte de la page web courante
-      const host = (typeof window !== 'undefined' && window.location?.hostname) || 'localhost';
-      console.log('🔧 API Config - Using web fallback');
-      return `http://${host}:4000`;
-    }
-    // iOS simulateur / fallback
-    console.log('🔧 API Config - Using iOS fallback');
-    return 'http://localhost:4000';
+    // Nouvelle URL pour le backend déployé
+    const deployedUrl = 'https://backend-x-stylings.onrender.com';
+    console.log('🔧 API Config - Using deployed URL:', deployedUrl);
+    return deployedUrl;
   })(),
 };
 

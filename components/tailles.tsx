@@ -8,7 +8,7 @@ type SizeSelectorProps = {
 
 const SizeSelector = ({ selectedSizes: controlledSelected, onChangeSelectedSizes }: SizeSelectorProps = {}) => {
   // Définition des tailles standard
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '36', '38', '40', '42', '44', '46'];
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
   
   const [uncontrolledSelected, setUncontrolledSelected] = useState<string[]>([]);
   const selectedSizes = controlledSelected ?? uncontrolledSelected;

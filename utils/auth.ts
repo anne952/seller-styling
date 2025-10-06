@@ -32,10 +32,10 @@ const mapBackendUserToAuthUser = (u: any): AuthUser => ({
 });
 
 export const AuthApi = {
-    register: async (payload: { 
-        name: string; 
-        email: string; 
-        password: string; 
+    register: async (payload: {
+        name: string;
+        email: string;
+        password: string;
         role?: "vendeur" | "client";
         localisation?: string;
         telephone?: string;
@@ -48,7 +48,7 @@ export const AuthApi = {
             password: payload.password,
             role: payload.role ?? "client",
         };
-        
+
         // Ajouter les champs spécifiques aux vendeurs
         if (payload.role === "vendeur") {
             backendPayload.localisation = payload.localisation;
@@ -56,7 +56,7 @@ export const AuthApi = {
             backendPayload.typeCouture = payload.typeCouture;
             backendPayload.specialite = payload.specialite;
         }
-        
+
         console.log('Register payload:', backendPayload);
         try {
             const raw = await apiFetch<any>(`/api/auth/register`, { method: "POST", body: backendPayload });
@@ -75,7 +75,7 @@ export const AuthApi = {
         }
     },
     login: async (payload: { email?: string; name?: string; password: string }) => {
-        const backendPayload = payload.email ? { email: payload.email, password: payload.password } : { nom: payload.name, password: payload.password };
+        const backendPayload = payload.email ? { email: payload.email, password: payload.password, app: 'vendeur' } : { nom: payload.name, password: payload.password, app: 'vendeur' };
         console.log('🔐 Login payload:', backendPayload);
         try {
             const raw = await apiFetch<any>(`/api/auth/login`, { method: "POST", body: backendPayload });
@@ -110,10 +110,10 @@ export const AuthApi = {
             telephone: payload.contact,
             commentaire: payload.comment,
         };
-        // Facultatif: si types/speciality fournis sous forme de chaîne, ne pas envoyer (le backend attend des enums[]) 
+        // Facultatif: si types/speciality fournis sous forme de chaîne, ne pas envoyer (le backend attend des enums[])
         // Vous pourrez activer ci-dessous quand l'UI proposera un multi-choix normalisé
         // if (Array.isArray(payload.types)) body.typeCouture = payload.types;
-        // if (Array.isArray(payload.speciality)) body.specialite = payload.speciality;
+        // if (Array.isArray(payload.speciality)) body.specialite = payload.specialite;
 
         Object.keys(body).forEach(key => {
             if (body[key] === undefined || body[key] === null || body[key] === '') {
@@ -143,15 +143,14 @@ export const UsersApi = {
 };
 
 export type ProductPayload = {
-    name: string;
-    price: number;
+    nom: string;
+    prix: number;
     promoPrice?: number;
     images: string[];
     description?: string;
-    colors?: string[];
-    sizes?: string[];
+    tailles: string[];
     categorieId?: number;
-    couleurId?: number;
+    couleurIds: number[];
 };
 
 export type Product = ProductPayload & {
@@ -167,42 +166,157 @@ export type Product = ProductPayload & {
 export const ProductsApi = {
     list: () => apiFetch<Product[]>(`/api/products`),
     create: (payload: ProductPayload) => {
-        // Mapper les champs du payload vers les champs attendus par le backend
+        // Payload directement compatible avec le backend
         const body: any = {
-            nom: payload.name,
-            prix: payload.price,
+            nom: payload.nom,
+            prix: payload.prix,
             description: payload.description,
-            images: payload.images, // Backend attend images comme array de URLs
+            images: payload.images,
             categorieId: payload.categorieId,
-            couleurId: payload.couleurId, // Garder couleurId pour compatibilité
-            // Envoyer toutes les tailles si multiples (backend peut traiter array)
-            tailles: payload.sizes, // Nouveaux champs pour multiples
-            couleurs: payload.colors, // Nouveaux champs pour multiples
+            tailles: payload.tailles,
+            prixPromotion: payload.promoPrice,
+            couleurIds: payload.couleurIds,
+            // Le backend attend également un champ `taille` (valeur unique)
+            // On envoie la première taille si disponible pour satisfaire la contrainte
+            taille: Array.isArray(payload.tailles) && payload.tailles.length > 0 ? payload.tailles[0] : undefined,
         };
-        // Pour taille, utiliser la première pour compatibilité mais ajoutez aussi les array
-        if (payload.sizes && payload.sizes.length > 0) {
-            body.taille = payload.sizes[0]; // Garde compatibilité avec ancienne API
-        }
         return apiFetch<Product>(`/api/products`, { method: "POST", body, auth: true });
     },
     remove: (id: string) => apiFetch<void>(`/api/products/${id}`, { method: "DELETE", auth: true }),
 };
 
-export type Order = {
-    id: string;
-    items: Array<{ productId: string; quantity: number; price: number }>;
-    total: number;
-    status: "validation" | "en_cours" | "livree" | "annulee";
+export type OrderItemPayload = {
+    productId: string;
+    quantity: number;
+    price: number; // prix unitaire
 };
 
+export type OrderPayload = {
+    items: OrderItemPayload[];
+    totalAmount: number;
+    location?: string;
+    paymentMethod?: 'Tmoney' | 'Flooz';
+    note?: string;
+};
+
+export type Order = {
+    id: string;
+    items: Array<{ produitId: number; quantite: number; prixUnitaire: number; total: number }>;
+    total: number;
+    status: "validation" | "en_cours" | "livree" | "annulee";
+    payement?: { montant: number; moyenDePayement: 'Tmoney' | 'Flooz' };
+};
+
+const mapOrderStatus = (backendStatus: string) => {
+    switch (backendStatus) {
+        case 'enAttente': return 'validation';
+        case 'en_cours_pour_la_livraison': return 'en_cours';
+        case 'livree': return 'livree';
+        case 'annulee': return 'annulee';
+        case 'rupture': return 'annulee'; // treat as canceled
+        default: return 'validation';
+    }
+};
+
+const mapOrderFields = (order: any): Order => ({
+    ...order,
+    id: String(order.id),
+    total: Number(order.montant),
+    items: order.ligneCommande.map((ligne: any) => ({
+        produitId: ligne.produitId,
+        quantite: ligne.quantite,
+        prixUnitaire: Number(ligne.prixUnitaire),
+        total: Number(ligne.total),
+    })),
+    status: mapOrderStatus(order.status),
+    payement: order.payement ? {
+        montant: Number(order.payement.montant),
+        moyenDePayement: order.payement.moyenDePayement,
+    } : undefined,
+});
+
 export const OrdersApi = {
-    create: (payload: { items: Array<{ productId: string; quantity: number }>; note?: string }) =>
-        apiFetch<Order>(`/api/orders`, { method: "POST", body: payload, auth: true }),
-    order: (payload: { productId: string; quantity: number; note?: string }) =>
-        apiFetch<Order>(`/api/order`, { method: "POST", body: payload, auth: true }),
-    myOrders: () => apiFetch<Order[]>(`/api/orders/mine`, { auth: true }),
+    // Créer une commande (aligné backend)
+    create: async (payload: OrderPayload) => {
+        const response = await apiFetch<{ message: string; order: any }>(`/api/orders`, {
+            method: "POST",
+            body: {
+                items: payload.items.map(i => ({
+                    produitId: Number(i.productId),
+                    quantite: i.quantity,
+                    prixUnitaire: i.price,
+                })),
+                localisation: payload.location,
+                payement: {
+                    montant: payload.totalAmount,
+                    moyenDePayement: payload.paymentMethod || 'Flooz',
+                },
+                note: payload.note,
+            },
+            auth: true,
+        });
+        return mapOrderFields(response.order);
+    },
+
+    // Traitement de paiement séparé si nécessaire
+    processPayment: (payload: {
+        items: Array<{ productId: string; quantity: number; price: number }>;
+        totalAmount: number;
+        paymentMethod: 'Tmoney' | 'Flooz';
+        buyerLocation?: string;
+        buyerInfo?: { id: string; name: string; email: string; phone?: string };
+    }) =>
+        apiFetch<Order>(`/api/orders/payment`, {
+            method: "POST",
+            body: {
+                items: payload.items.map(i => ({
+                    produitId: Number(i.productId),
+                    quantite: i.quantity,
+                    prixUnitaire: i.price,
+                })),
+                payement: {
+                    montant: payload.totalAmount,
+                    moyenDePayement: payload.paymentMethod,
+                },
+                localisation: payload.buyerLocation,
+                buyerInfo: payload.buyerInfo,
+            },
+            auth: true,
+        }),
+
+    // Ajouter un seul produit à une commande existante ou temporaire
+    order: (payload: { productId: string; quantity: number; price: number; note?: string }) =>
+        apiFetch<Order>(`/api/order`, {
+            method: "POST",
+            body: {
+                items: [
+                    {
+                        produitId: Number(payload.productId),
+                        quantite: payload.quantity,
+                        prixUnitaire: payload.price,
+                    },
+                ],
+                note: payload.note,
+            },
+            auth: true,
+        }),
+
+    // Liste des commandes de l'utilisateur
+    myOrders: async () => {
+        const orders = await apiFetch<any[]>(`/api/orders/me`, { auth: true });
+        return orders.map(mapOrderFields);
+    }, // for clients purchases
+
+    // Liste des commandes du vendeur (leurs ventes)
+    sellerOrders: () => apiFetch<any[]>(`/api/orders/mine`, { auth: true }), // for sellers sales
+
+    // Valider une commande
     validate: (id: string) => apiFetch<Order>(`/api/orders/${id}/validate`, { method: "POST", auth: true }),
+
+    // Annuler une commande
     cancel: (id: string) => apiFetch<Order>(`/api/orders/${id}/cancel`, { method: "POST", auth: true }),
+
+    // Marquer une commande comme livrée
     deliver: (id: string) => apiFetch<Order>(`/api/orders/${id}/deliver`, { method: "POST", auth: true }),
 };
 
@@ -211,6 +325,7 @@ export const ReviewsApi = {
         apiFetch(`/api/reviews`, { method: "POST", body: payload, auth: true }),
     byVendor: (vendeurId: string) => apiFetch(`/api/reviews/vendor/${vendeurId}`),
     byUser: (userId: string) => apiFetch(`/api/reviews/user/${userId}`, { auth: true }),
+    byProduct: (productId: string) => apiFetch(`/api/reviews/product/${productId}`), // publique
     update: (reviewId: string, payload: { rating?: number; comment?: string }) =>
         apiFetch(`/api/reviews/${reviewId}`, { method: "PUT", body: payload, auth: true }),
     remove: (reviewId: string) => apiFetch(`/api/reviews/${reviewId}`, { method: "DELETE", auth: true }),
@@ -227,8 +342,21 @@ export const ColorsApi = {
     create: (payload: { name: string; hex: string }) => apiFetch(`/api/colors`, { method: "POST", body: payload, auth: true }),
 };
 
+export const LikesApi = {
+    // Liste des likes de l'utilisateur
+    list: () => apiFetch<any[]>(`/api/likes`, { auth: true }),
+    // Ajouter un like
+    add: (produitId: number) => apiFetch(`/api/likes`, { method: 'POST', body: { produitId }, auth: true }),
+    // Supprimer un like
+    remove: (produitId: number) => apiFetch(`/api/likes/${produitId}`, { method: 'DELETE', auth: true }),
+};
+
 export const StatsApi = {
     dashboardCards: () => apiFetch(`/api/stats/dashboard-cards`, { auth: true }),
-    salesYearly: () => apiFetch(`/api/stats/sales/yearly`, { auth: true }),
+    salesYearly: () => apiFetch(`/api/stats/sales/yearly?t=${Date.now()}`, { auth: true }),
     usersLine: () => apiFetch(`/api/stats/users/line`, { auth: true }),
+    // API pour les statistiques du vendeur
+    sellerStats: () => apiFetch(`/api/stats/seller`, { auth: true }),
+    // API pour les gains du vendeur
+    sellerEarnings: () => apiFetch(`/api/stats/vendeur/earnings`, { auth: true }),
 };
