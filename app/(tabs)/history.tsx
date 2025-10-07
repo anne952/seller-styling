@@ -83,28 +83,27 @@ export default function HistoryScreen() {
   };
 
   const renderItem = ({ item }: { item: typeof activities[0] }) => (
-    <Pressable
-      onLongPress={() => handleLongPress(item.id)}
-      onPress={() => handlePress(item.id)}
-      style={{
-        marginHorizontal: 12,
-        marginVertical: 6,
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        borderColor: selected.includes(item.id) ? '#3b82f6' : 'rgba(0,0,0,0.06)',
-        borderWidth: selected.includes(item.id) ? 2 : 1,
-        backgroundColor: selected.includes(item.id) ? '#eff6ff' : '#fff',
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 1,
-      }}
-    >
-      <Image source={item.image ?? require('@/assets/images/0 (1).jpeg')} style={{ width: 64, height: 64, borderRadius: 10 }} />
+      <Pressable
+        onLongPress={() => handleLongPress(item.id)}
+        onPress={() => handlePress(item.id)}
+        style={{
+          marginHorizontal: 12,
+          marginVertical: 6,
+          padding: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          borderColor: selected.includes(item.id) ? '#3b82f6' : 'rgba(0,0,0,0.06)',
+          borderWidth: selected.includes(item.id) ? 2 : 1,
+          backgroundColor: selected.includes(item.id) ? '#eff6ff' : '#fff',
+          borderRadius: 12,
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 1,
+        }}
+      >
       <View style={{ flex: 1, gap: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text className="font-bold text-base" numberOfLines={1}>{item.title}</Text>

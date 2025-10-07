@@ -4,7 +4,7 @@
     "slug": "seller_styling",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/iicon.png",
     "scheme": "sellerstyling",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,7 +18,8 @@
         "backgroundColor": "#ffffff",
         "google_api_key": "AIzaSyDrqf1ZyQOEb-cODDRRV-OM838ubcwfV0E"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anne_k.seller_styling"
     },
     "web": {
       "bundler": "metro",

@@ -38,7 +38,7 @@ export default function Cart(){
               {items.map((it, idx) => (
                 <View key={`${it.id}-${it.size ?? ""}-${it.color ?? ""}-${idx}`} className="flex flex-row items-center bg-white rounded-xl p-3 shadow shadow-gray-200 gap-6">
                   {it.image && (
-                    <Image source={it.image} style={{ width: 72, height: 72, borderRadius: 8 }} />
+                    <Image source={typeof it.image === 'string' ? { uri: it.image } : it.image} style={{ width: 72, height: 72, borderRadius: 8 }} />
                   )}
                   <View className="flex-1 ml-3">
                     <Text className="font-semibold text-lg">{it.name}</Text>
