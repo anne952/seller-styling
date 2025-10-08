@@ -3,27 +3,8 @@
     "name": "seller_styling",
     "slug": "seller_styling",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/iconCarré_.png",
-    "scheme": "sellerstyling",
+    "runtimeVersion": "1.0.0",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.anne_k.seller_styling"
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
     "extra": {
       "googleClientId": "578405728941-2530jsnlu0pcp0vbc3f334aa2cboiinn.apps.googleusercontent.com",
       "googleAndroidClientId": "578405728941-enk5d6satm01ckt4pbopqa18qpvuqdk6.apps.googleusercontent.com",
@@ -56,11 +37,9 @@
     "experiments": {
       "typedRoutes": true
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "updates": {
       "url": "https://u.expo.dev/41104730-f669-46a1-9f44-b97a4c58c699"
-    }
+    },
+    "assetBundlePatterns": ["**/*"]
   }
 }
