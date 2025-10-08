@@ -4,19 +4,17 @@
     "slug": "seller_styling",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/iicon.jpg",
+    "icon": "./assets/images/iconCarré_.png",
     "scheme": "sellerstyling",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "package": "com.sellerstyling.app",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "google_api_key": "AIzaSyDrqf1ZyQOEb-cODDRRV-OM838ubcwfV0E"
+        "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anne_k.seller_styling"
