@@ -4,7 +4,7 @@
     "slug": "seller_styling",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/iicon.png",
+    "icon": "./assets/images/iicon.jpg",
     "scheme": "sellerstyling",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
